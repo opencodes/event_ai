@@ -10,13 +10,13 @@ Create a comprehensive High-Level Design document for a scalable platform that m
 
 1. **System Overview**
    - Platform for organizing traditional Indian ceremonies and cultural events
-   - Target users: Event organizers (families), priests/pandits, vendors (caterers, decorators, photographers), guests/attendees
+   - Target users: Event organizers, priests/pandits, vendors (caterers, decorators, photographers), guests/attendees
    - Core features: Event creation with custom rituals, vendor management, guest invitation & RSVP, priest/pandit booking, muhurat (auspicious timing) integration, gift registry, photo/video sharing
 
 2. **Architecture Components**
    - System architecture diagram (microservices recommended for vendor ecosystem)
    - Key services: 
-     - User & Family Profile Service
+     - User Profile Service
      - Event & Ceremony Service (with ritual/custom templates)
      - Vendor Marketplace Service (caterers, decorators, photographers, venues)
      - Priest/Pandit Booking Service
@@ -31,9 +31,9 @@ Create a comprehensive High-Level Design document for a scalable platform that m
 3. **Data Design**
    - High-level data models for:
      - **Events**: Event type (Vivah, Mundan, Upnayan), date/time, venue, rituals checklist, muhurat details
-     - **Users**: Families, event organizers, priests, vendors, guests
+     - **Users**: Event organizers, priests, vendors, guests
      - **Vendors**: Categories (catering, decoration, photography, venue, priest services), ratings, availability, pricing packages
-     - **Guests**: RSVP status, meal preferences (veg/non-veg/Jain), accommodation needs, relationship to family
+     - **Guests**: RSVP status, meal preferences (veg/non-veg/Jain), accommodation needs, relationship
      - **Rituals**: Ceremony-specific ritual templates, custom checklists, item requirements (samagri list)
      - **Invitations**: Digital cards, WhatsApp-ready formats, printable designs
      - **Gifts**: Registry items, cash contributions, UPI payment tracking
@@ -70,7 +70,7 @@ Create a comprehensive High-Level Design document for a scalable platform that m
    - Choose date or get muhurat suggestions
    - Add venue details and location
    - Select ritual checklist from templates or customize
-   - Create guest list with family tree mapping
+   - Create guest list with guest relationship mapping
    - Choose/customize digital invitation design
 
    **b) Vendor Booking Flow:**
@@ -89,7 +89,7 @@ Create a comprehensive High-Level Design document for a scalable platform that m
    - Receive samagri (ritual items) list from priest
 
    **d) Guest Invitation & RSVP Flow:**
-   - Import contacts or enter manually with family relationships
+   - Import contacts or enter manually with guest relationships
    - Customize invitation message per guest group
    - Send via WhatsApp/Email/SMS with RSVP link
    - Track RSVP status (attending/not attending/maybe)
@@ -101,7 +101,7 @@ Create a comprehensive High-Level Design document for a scalable platform that m
    - Share registry link with guests
    - Accept cash contributions via UPI/card
    - Track gifts received and send thank-you notes
-   - Generate contribution report for family records
+   - Generate contribution report for event records
 
    **f) Media Sharing Flow:**
    - Photographer uploads event photos/videos to dedicated gallery
@@ -126,7 +126,7 @@ Create a comprehensive High-Level Design document for a scalable platform that m
 
 8. **Security & Privacy Considerations**
    - Phone number verification (OTP-based)
-   - Data encryption for personal family information
+   - Data encryption for personal guest information
    - PCI DSS compliance for payment handling
    - Privacy controls for event visibility (public/private/invite-only)
    - Guest data access limited to event organizers

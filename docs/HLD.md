@@ -31,9 +31,9 @@
 
 ## 1. Executive Summary
 
-This document defines the high-level architecture for a **multi-tenant platform** that helps families plan, coordinate, and celebrate traditional Indian ceremonies—Vivah (wedding), Mundan, Upnayan, Naamkaran, Griha Pravesh, and related events.
+This document defines the high-level architecture for a **multi-tenant platform** that helps organizers plan, coordinate, and celebrate traditional Indian ceremonies—Vivah (wedding), Mundan, Upnayan, Naamkaran, Griha Pravesh, and related events.
 
-The platform connects **families (organizers)**, **priests/pandits**, **vendors**, and **guests** through a mobile-first experience with WhatsApp as the primary outreach channel, regional language support, Panchang-based muhurat guidance, and India-specific payment rails (UPI, Razorpay).
+The platform connects **organizers**, **priests/pandits**, **vendors**, and **guests** through a mobile-first experience with WhatsApp as the primary outreach channel, regional language support, Panchang-based muhurat guidance, and India-specific payment rails (UPI, Razorpay).
 
 **Architectural stance:** Microservices behind an API gateway, polyglot persistence (PostgreSQL + MongoDB + object storage), async messaging for bulk notifications and media processing, and regional deployment for latency and data residency.
 
@@ -49,21 +49,26 @@ Enable end-to-end ceremony lifecycle management: from auspicious date selection 
 
 | Persona | Primary goals |
 |---------|----------------|
-| **Family / Event organizer** | Create events, manage rituals, invite guests, book vendors & priests |
+| **Event organizer** | Create events, manage rituals, invite guests, book vendors & priests |
+| **Host / Planner** | Estimate invitees, plan sub-events, manage Bhoj/items, track gifts and dependent guest groups |
 | **Priest / Pandit** | Showcase expertise, manage availability, share samagri lists |
 | **Vendor** (caterer, decorator, photographer, venue) | List services, accept bookings, receive settlements |
+| **Admin** | Manage users, roles and permissions, oversee platform governance |
 | **Guest / Attendee** | RSVP, view invitations, contribute gifts, access photo galleries |
 
 ### 2.3 Core Capabilities
 
 - Event creation with **ceremony-type templates** and customizable ritual checklists
+- Host planning workflows for sub-events, guest estimation, dependent guest groups, Bhoj menu, and material tracking
+- Contact import via CSV/mobile, plus invite delivery via call, email, SMS, and WhatsApp
 - **Vendor marketplace** with search, availability, booking, and reviews
 - **Priest/pandit booking** with dakshina and samagri management
-- **Guest management**: family-tree mapping, RSVP, meal preferences (veg / non-veg / Jain)
+- **Guest management**: guest relationship mapping, RSVP, meal preferences (veg / non-veg / Jain)
 - **Digital & printable invitations** (WhatsApp-ready)
 - **Muhurat & Panchang** integration for auspicious timing
 - **Gift registry** and cash/UPI contributions
 - **Media gallery** with privacy controls and CDN delivery
+- **Admin user management**: roles, permissions, platform settings, and audit trails
 
 ### 2.4 High-Level Context Diagram
 
@@ -83,7 +88,7 @@ Enable end-to-end ceremony lifecycle management: from auspicious date selection 
          │                         │                         │
     ┌────▼────┐  ┌─────────┐  ┌────▼────┐  ┌──────────┐  ┌▼────────┐
     │  User & │  │ Event & │  │ Vendor  │  │  Guest   │  │ Muhurat │
-    │ Family  │  │Ceremony │  │Market-  │  │   RSVP   │  │Panchang │
+    │ User   │  │Ceremony │  │Market-  │  │   RSVP   │  │Panchang │
     │ Profile │  │ Service │  │ place   │  │ Service  │  │ Service │
     └────┬────┘  └────┬────┘  └────┬────┘  └────┬─────┘  └────┬────┘
          │            │            │            │             │
@@ -116,7 +121,7 @@ Start with **bounded contexts** in one deployable unit; extract **Notification**
 
 | Service | Responsibility | Primary store |
 |---------|----------------|---------------|
-| **User & Family Profile** | Auth identities, family units, relationships, roles | PostgreSQL |
+| **User Profile** | Auth identities, relationships, roles | PostgreSQL |
 | **Event & Ceremony** | Events, venues, ritual instances, timelines | PostgreSQL + MongoDB (templates) |
 | **Vendor Marketplace** | Catalog, packages, availability, inquiries, bookings | PostgreSQL + Elasticsearch |
 | **Priest/Pandit Booking** | Profiles, expertise, dakshina, samagri lists | PostgreSQL |
@@ -191,9 +196,7 @@ Start with **bounded contexts** in one deployable unit; extract **Notification**
 ### 4.2 Entity Relationship (Conceptual)
 
 ```
-Family ──< User (organizer|member)
-  │
-  └──< Event ──< RitualInstance (from template)
+Organizer / User ──< Event ──< RitualInstance (from template)
          │
          ├──< Guest ── RSVP, meal_pref, relationship
          ├──< VendorBooking ── Payment
@@ -215,19 +218,9 @@ role ENUM(organizer, guest, vendor, priest, admin),
 preferred_locale VARCHAR(10), created_at
 ```
 
-**families**
-```sql
-id UUID PK, name VARCHAR, head_user_id UUID FK
-```
-
-**family_members**
-```sql
-family_id UUID FK, user_id UUID FK, relationship VARCHAR, -- e.g. "maternal_uncle"
-```
-
 **events**
 ```sql
-id UUID PK, family_id UUID FK,
+id UUID PK,
 ceremony_type ENUM(vivah, mundan, upnayan, naamkaran, griha_pravesh, other),
 status ENUM(draft, published, completed, cancelled),
 start_at TIMESTAMPTZ, end_at TIMESTAMPTZ,
@@ -244,7 +237,7 @@ name VARCHAR, phone VARCHAR, email VARCHAR,
 rsvp_status ENUM(pending, yes, no, maybe),
 meal_preference ENUM(veg, non_veg, jain, vegan),
 accommodation_needed BOOLEAN,
-relationship_to_family VARCHAR,
+relationship VARCHAR,
 plus_ones INT DEFAULT 0
 ```
 
@@ -379,7 +372,7 @@ Organizer → Select ceremony_type
          → Pick date/time (manual or suggested window)
          → Add venue (Maps geocode)
          → Load ritual template → customize checklist
-         → Build guest list / import contacts / family tree
+         → Build guest list / import contacts / guest relationships
          → Select invitation design → preview per locale
          → Publish event (status: published)
 ```
@@ -425,7 +418,7 @@ Similar to vendor flow with additions:
 
 ```
 Import contacts (device / CSV) → Map relationships
-→ Segment guests (e.g. "Delhi family", "office colleagues")
+→ Segment guests (e.g. "Delhi group", "office colleagues")
 → Personalize message per segment
 → Enqueue bulk send (Notification Service)
    ├── WhatsApp template + RSVP deep link
@@ -443,17 +436,54 @@ Invitation Svc → Kafka topic: invitations.outbound
               → Delivery status → PostgreSQL guest_invitation_delivery
 ```
 
-### 7.5 Gift Registry & Contribution Flow
+### 7.5 Host Planning & Event Management Flow
+
+```
+Host → Create event (new or from template)
+     → Add sub-events / ceremony schedule
+     → Import contact list / mobile contacts
+     → Estimate guests: invitees, villagers
+     → Add dependents & linked guest members
+     → Allocate Bhoj items & kitchen supplies
+     → Plan vendor assignments for food, bartan, milk, curd, kirasan, and other items
+     → Estimate kapra requirements
+     → Track vidh vyabhar tasks, purchases, and completion
+     → Capture chuman/gift amounts and return gift details
+     → Publish event and monitor preparation status
+```
+
+**Host planning details:**
+- Sub-events: pre-ceremony, main ceremony, post-ceremony gatherings
+- Bhoj planning: menu items, serving counts, vendor vs in-house assignment
+- Material tracker: bartan, kirasan, milk, curd, khoa, chena pani, kapra, and sundry items
+- Dependent guest groups: parent/guardian call status, group attendance, age/gender for return-gift planning
+
+### 7.6 Admin Role & Permission Flow
+
+```
+Admin → Create/manage users → Assign roles/permissions
+      → Grant organizer, vendor, priest, host, or admin access
+      → Monitor activity logs and audit changes
+      → Configure platform defaults, invite policies, and template access
+```
+
+**Admin capabilities:**
+- Role-based access control for organizer, host, vendor, priest, and admin personas
+- Permission scopes for event creation, vendor booking, guest list editing, and reporting
+- Audit logging for user and event changes
+- Governance of vendor/service categories and regional templates
+
+### 7.7 Gift Registry & Contribution Flow
 
 ```
 Create registry (items + cash fund) → Share link (short URL)
 → Guest pays via UPI/card → Webhook confirms
 → Mark item fulfilled / increment cash total
 → Auto thank-you (WhatsApp/email) optional
-→ Export contribution report (CSV/PDF) for family records
+→ Export contribution report (CSV/PDF) for event records
 ```
 
-### 7.6 Media Sharing Flow
+### 7.8 Media Sharing Flow
 
 ```
 Photographer role upload → S3 multipart → Queue: transcode/thumbnail
@@ -525,6 +555,7 @@ Photographer role upload → S3 multipart → Queue: transcode/thumbnail
 
 ### 11.1 Vendor Dashboard
 
+- Vendor profile and service listings with estimated plan details
 - Booking calendar (block dates, tentative holds)
 - Portfolio CRUD → S3
 - Inquiry inbox → convert to booking
@@ -576,7 +607,7 @@ Photographer role upload → S3 multipart → Queue: transcode/thumbnail
 ## 14. Monetization
 
 1. **Marketplace commission:** 10–15% on vendor/priest bookings (excluding GST; clarify in ToS)
-2. **Premium family tier:** Advanced invitation designs, unlimited guests, priority support
+2. **Premium tier:** Advanced invitation designs, unlimited guests, priority support
 3. **Vendor subscriptions:** Basic / Pro / Featured tiers
 4. **Promoted listings:** Auction or fixed fee per category-region
 5. **Adjacent ads:** Jewelry, travel, insurance (strict separation from editorial search)
@@ -604,10 +635,10 @@ Photographer role upload → S3 multipart → Queue: transcode/thumbnail
 | **Multi-language content** | Invitation quality, legal copy | Professional translation for templates; user-editable fields; locale fallbacks |
 | **Regional ritual differences** | Wrong checklist offends/troubles | Region-tagged templates; community contributors; priest-reviewed packs (Phase 2) |
 | **Muhurat disagreement** | Trust erosion | Multiple sources; display uncertainty; priest override |
-| **Family relationship taxonomy** | Complex addressing ("Mama ji") | Flexible relationship strings + optional family tree UI |
+| **Relationship taxonomy** | Complex addressing ("Mama ji") | Flexible relationship strings + optional guest relationship UI |
 | **Dietary rules** | Jain/veg/separate kitchen | Explicit meal enums; per-day meal plans for multi-day weddings |
 | **WhatsApp dependency** | Meta policy, per-user blocks | SMS/email fallback; in-app notification center |
-| **Cash + digital gifts** | Reconciliation | Record manual cash gifts; UPI for digital; export for family ledger |
+| **Cash + digital gifts** | Reconciliation | Record manual cash gifts; UPI for digital; export for event ledger |
 | **Large guest lists** | Performance, cost | Pagination; batch messaging; tiered pricing for &gt;5k guests |
 | **Photographer copyright** | Legal | Upload terms; organizer controls download rights |
 
