@@ -4,6 +4,7 @@ import { config } from '../config/index.js';
 import { responseMiddleware } from './core/shared/middleware/response.js';
 import { authRoutes } from './core/auth/index.js';
 import { adminRoutes } from './core/admin/index.js';
+import { eventRoutes } from './modules/events/index.js';
 import morgan from 'morgan';
 
 const app: Express = express();
@@ -18,5 +19,6 @@ app.use(morgan('dev'));
 
 app.use('/api', authRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/events', eventRoutes);
 
 export default app;

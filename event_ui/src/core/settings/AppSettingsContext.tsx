@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 const STORAGE_KEY = 'admin_app_settings_v1';
 
 export interface AppSettings {
+  activeEventId: string | null;
   participantRsvpStatuses: string[];
   participantGenders: string[];
   participantAgeGroups: string[];
@@ -10,6 +11,7 @@ export interface AppSettings {
 }
 
 const defaultSettings: AppSettings = {
+  activeEventId: null,
   participantRsvpStatuses: ['Pending Invitation', 'Invited', 'Attended'],
   participantGenders: ['Female', 'Male', 'Non-binary', 'Prefer not to say'],
   participantAgeGroups: ['Child', 'Teen', 'Adult', 'Senior'],
@@ -40,7 +42,11 @@ function sanitizeList(values: unknown, fallback: string[]): string[] {
 function sanitizeSettings(input: unknown): AppSettings {
   if (!input || typeof input !== 'object') return defaultSettings;
   const source = input as Partial<AppSettings>;
+  const activeEventId = typeof source.activeEventId === 'string' && source.activeEventId.trim()
+    ? source.activeEventId.trim()
+    : null;
   return {
+    activeEventId,
     participantRsvpStatuses: sanitizeList(source.participantRsvpStatuses, defaultSettings.participantRsvpStatuses),
     participantGenders: sanitizeList(source.participantGenders, defaultSettings.participantGenders),
     participantAgeGroups: sanitizeList(source.participantAgeGroups, defaultSettings.participantAgeGroups),

@@ -22,8 +22,8 @@ const db = {
   assets: [] as Array<{ id: string; family_id: string; asset_type: string; name: string; description?: string | null; purchase_date?: string | null; purchase_price: number; current_value: number; location?: string | null; expiry_date?: string | null; created_at?: string; updated_at?: string }>,
   events: [] as Array<{ id: string; family_id: string; name: string; type: string; start_date: string; end_date?: string | null; location?: string | null; total_budget: number; notes?: string | null; status: string; created_at?: string; updated_at?: string }>,
   sub_events: [] as Array<{ id: string; event_id: string; name: string; date_time: string; location?: string | null; budget: number; created_at?: string; updated_at?: string }>,
-  event_participants: [] as Array<{ id: string; event_id: string; contact_id: string; role: 'guest' | 'vendor' | 'host'; rsvp_status: string; gender?: string | null; age_group?: string | null; gifts?: string[]; created_at?: string; updated_at?: string }>,
-  contacts: [] as Array<{ id: string; family_id: string; name: string | null; phone: string | null; phone_ext: string | null; phone_number: string | null; phone_norm: string | null; email?: string | null; last_synced_at?: string | null }>,
+  event_participants: [] as Array<{ id: string; event_id: string; contact_id: string; role: 'guest' | 'vendor' | 'host'; rsvp_status: string; relationship?: string | null; meal_preference?: string; accommodation?: boolean; plus_ones?: number; plus_members?: Array<{ id?: string; name: string; gender?: string | null; age?: number | null }>; age?: number | null; gender?: string | null; age_group?: string | null; dependent_group_id?: string | null; return_gift?: { gift_type?: string | null; quantity: number; notes?: string | null }; notes?: string | null; gifts?: string[]; created_at?: string; updated_at?: string }>,
+  contacts: [] as Array<{ id: string; family_id: string; name: string | null; phone: string | null; phone_ext: string | null; phone_number: string | null; phone_norm: string | null; email?: string | null; relation?: string | null; source?: string; last_synced_at?: string | null }>,
   sms_history: [] as Array<{ id: string; family_id: string; input_text: string; model_used: string; output: Record<string, unknown> | null; date: string; accuracy: number | null; status: string; parse_type: string; transaction_id: string | null; created_by: string | null; amount: number | null; category: string | null; type: string | null; description: string | null }>,
   roles: [] as Array<{ id: string; name: string; description?: string; created_at: string; updated_at: string }>,
   permissions: [] as Array<{ id: string; name: string; resource: string; action: string; description?: string; created_at: string; updated_at: string }>,
@@ -79,6 +79,57 @@ function normalizePhone(value: string | null | undefined) {
 
 function matchesText(value: string | null | undefined, query: string) {
   return (value || '').toLowerCase().includes(query.toLowerCase());
+}
+
+function guestFromParticipant(item: typeof db.event_participants[number]) {
+  const contact = db.contacts.find((entry) => entry.id === item.contact_id);
+  const plusMembers = item.plus_members ?? [];
+  return {
+    id: item.id,
+    event_id: item.event_id,
+    contact_id: item.contact_id,
+    name: contact?.name ?? 'Unnamed guest',
+    phone: contact?.phone ?? null,
+    email: contact?.email ?? null,
+    relationship: item.relationship ?? contact?.relation ?? null,
+    rsvp_status: item.rsvp_status ?? 'pending',
+    meal_preference: item.meal_preference ?? 'unknown',
+    accommodation: Boolean(item.accommodation),
+    plus_members: plusMembers,
+    plus_ones: plusMembers.length || Number(item.plus_ones ?? 0),
+    age: item.age ?? null,
+    gender: item.gender ?? null,
+    dependent_group_id: item.dependent_group_id ?? null,
+    return_gift: item.return_gift ?? { quantity: 0 },
+    notes: item.notes ?? null,
+    created_at: item.created_at,
+    updated_at: item.updated_at
+  };
+}
+
+function guestEstimate(eventId: string) {
+  const guests = db.event_participants
+    .filter((item) => item.event_id === eventId && item.role === 'guest')
+    .map(guestFromParticipant);
+  const rsvp = {
+    pending: guests.filter((guest) => guest.rsvp_status === 'pending').length,
+    yes: guests.filter((guest) => guest.rsvp_status === 'yes').length,
+    no: guests.filter((guest) => guest.rsvp_status === 'no').length,
+    maybe: guests.filter((guest) => guest.rsvp_status === 'maybe').length
+  };
+  const plusOnes = guests.reduce((total, guest) => total + (guest.plus_members?.length ?? guest.plus_ones), 0);
+  const yesCount = guests
+    .filter((guest) => guest.rsvp_status === 'yes')
+    .reduce((total, guest) => total + 1 + (guest.plus_members?.length ?? guest.plus_ones), 0);
+  const maybeCount = guests
+    .filter((guest) => guest.rsvp_status === 'maybe' || guest.rsvp_status === 'pending')
+    .reduce((total, guest) => total + 1 + (guest.plus_members?.length ?? guest.plus_ones), 0);
+  return {
+    total_invitees: guests.length,
+    plus_ones: plusOnes,
+    projected_attendance: yesCount + Math.ceil(maybeCount * 0.5),
+    rsvp
+  };
 }
 
 function getUserFromRequest(request: { requestHeaders: Record<string, string | undefined> }) {
@@ -1701,8 +1752,17 @@ export function makeServer({ environment = 'development' } = {}) {
           contact_id: body.contact_id ?? '',
           role: body.role ?? 'guest',
           rsvp_status: body.rsvp_status ?? 'pending',
+          relationship: body.relationship ?? null,
+          meal_preference: body.meal_preference ?? 'unknown',
+          accommodation: Boolean(body.accommodation),
+          plus_ones: Number(body.plus_ones ?? 0),
+          plus_members: Array.isArray(body.plus_members) ? body.plus_members : [],
+          age: body.age ?? null,
           gender: body.gender ?? null,
           age_group: body.age_group ?? null,
+          dependent_group_id: body.dependent_group_id ?? null,
+          return_gift: body.return_gift ?? { quantity: 0 },
+          notes: body.notes ?? null,
           gifts: Array.isArray(body.gifts) ? body.gifts : [],
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
@@ -1723,6 +1783,196 @@ export function makeServer({ environment = 'development' } = {}) {
         if (index === -1) return new Response(404, {}, { message: 'Not found' });
         db.event_participants.splice(index, 1);
         return { data: { ok: true } };
+      });
+
+      this.post('/events/:eventId/contacts/import', (_schema, request) => {
+        const event = db.events.find((entry) => entry.id === request.params.eventId);
+        if (!event) return new Response(404, {}, { message: 'Event not found' });
+        const body = JSON.parse(request.requestBody);
+        const contacts = Array.isArray(body.contacts) ? body.contacts : [];
+        const createdContacts = [];
+        const createdGuests = [];
+        for (const entry of contacts) {
+          const name = typeof entry.name === 'string' ? entry.name.trim() : '';
+          if (!name) continue;
+          const contact = {
+            id: uid(),
+            family_id: event.family_id,
+            name,
+            phone: entry.phone ?? null,
+            phone_ext: null,
+            phone_number: normalizePhone(entry.phone),
+            phone_norm: normalizePhone(entry.phone),
+            email: entry.email ?? null,
+            relation: entry.relationship ?? entry.relation ?? null,
+            source: entry.source ?? 'csv',
+            last_synced_at: new Date().toISOString()
+          };
+          db.contacts.push(contact);
+          createdContacts.push(contact);
+          if (entry.invite !== false) {
+            const guest = {
+              id: uid(),
+              event_id: event.id,
+              contact_id: contact.id,
+              role: 'guest' as const,
+              rsvp_status: 'pending',
+              relationship: contact.relation,
+              meal_preference: entry.meal_preference ?? 'unknown',
+              accommodation: false,
+              plus_members: Array.isArray(entry.plus_members) ? entry.plus_members : [],
+              plus_ones: Number(entry.plus_ones ?? entry.plus_members?.length ?? 0),
+              age: entry.age ?? null,
+              gender: entry.gender ?? null,
+              dependent_group_id: null,
+              return_gift: { quantity: 0 },
+              notes: entry.notes ?? null,
+              gifts: [],
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            };
+            db.event_participants.push(guest);
+            createdGuests.push(guestFromParticipant(guest));
+          }
+        }
+        return { data: { contacts: createdContacts, guests: createdGuests, imported: createdContacts.length, invited: createdGuests.length } };
+      });
+
+      this.get('/events/:eventId/guests', (_schema, request) => {
+        return {
+          data: db.event_participants
+            .filter((item) => item.event_id === request.params.eventId && item.role === 'guest')
+            .map(guestFromParticipant)
+        };
+      });
+
+      this.post('/events/:eventId/guests', (_schema, request) => {
+        const event = db.events.find((entry) => entry.id === request.params.eventId);
+        if (!event) return new Response(404, {}, { message: 'Event not found' });
+        const body = JSON.parse(request.requestBody);
+        const name = typeof body.name === 'string' ? body.name.trim() : '';
+        if (!name) return new Response(400, {}, { message: 'Guest name is required' });
+        const contact = {
+          id: uid(),
+          family_id: event.family_id,
+          name,
+          phone: body.phone ?? null,
+          phone_ext: null,
+          phone_number: normalizePhone(body.phone),
+          phone_norm: normalizePhone(body.phone),
+          email: body.email ?? null,
+          relation: body.relationship ?? null,
+          source: 'manual',
+          last_synced_at: new Date().toISOString()
+        };
+        db.contacts.push(contact);
+        const guest = {
+          id: uid(),
+          event_id: event.id,
+          contact_id: contact.id,
+          role: 'guest' as const,
+          rsvp_status: body.rsvp_status ?? 'pending',
+          relationship: body.relationship ?? null,
+          meal_preference: body.meal_preference ?? 'unknown',
+          accommodation: Boolean(body.accommodation),
+          plus_members: Array.isArray(body.plus_members) ? body.plus_members : [],
+          plus_ones: Number(body.plus_ones ?? body.plus_members?.length ?? 0),
+          age: body.age ?? null,
+          gender: body.gender ?? null,
+          dependent_group_id: body.dependent_group_id ?? null,
+          return_gift: body.return_gift ?? { quantity: 0 },
+          notes: body.notes ?? null,
+          gifts: [],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        db.event_participants.push(guest);
+        return { data: guestFromParticipant(guest) };
+      });
+
+      this.patch('/events/:eventId/guests/:guestId', (_schema, request) => {
+        const guest = db.event_participants.find((entry) => entry.id === request.params.guestId && entry.event_id === request.params.eventId && entry.role === 'guest');
+        if (!guest) return new Response(404, {}, { message: 'Not found' });
+        const body = JSON.parse(request.requestBody);
+        Object.assign(guest, body, {
+          plus_members: body.plus_members === undefined ? guest.plus_members : body.plus_members,
+          plus_ones: body.plus_members === undefined
+            ? body.plus_ones === undefined ? guest.plus_ones : Number(body.plus_ones)
+            : body.plus_members.length,
+          updated_at: new Date().toISOString()
+        });
+        const contact = db.contacts.find((entry) => entry.id === guest.contact_id);
+        if (contact) {
+          Object.assign(contact, {
+            name: body.name ?? contact.name,
+            phone: body.phone ?? contact.phone,
+            email: body.email ?? contact.email,
+            relation: body.relationship ?? contact.relation,
+            phone_number: normalizePhone(body.phone ?? contact.phone),
+            phone_norm: normalizePhone(body.phone ?? contact.phone),
+            last_synced_at: new Date().toISOString()
+          });
+        }
+        return { data: guestFromParticipant(guest) };
+      });
+
+      this.delete('/events/:eventId/guests/:guestId', (_schema, request) => {
+        const index = db.event_participants.findIndex((entry) => entry.id === request.params.guestId && entry.event_id === request.params.eventId && entry.role === 'guest');
+        if (index === -1) return new Response(404, {}, { message: 'Not found' });
+        db.event_participants.splice(index, 1);
+        return { data: { id: request.params.guestId } };
+      });
+
+      this.post('/events/:eventId/guests/:guestId/dependents', (_schema, request) => {
+        const parent = db.event_participants.find((entry) => entry.id === request.params.guestId && entry.event_id === request.params.eventId && entry.role === 'guest');
+        if (!parent) return new Response(404, {}, { message: 'Not found' });
+        const body = JSON.parse(request.requestBody);
+        const name = typeof body.name === 'string' ? body.name.trim() : '';
+        if (!name) return new Response(400, {}, { message: 'Dependent name is required' });
+        const groupId = parent.dependent_group_id ?? uid();
+        parent.dependent_group_id = groupId;
+        const guest = {
+          id: uid(),
+          event_id: request.params.eventId,
+          contact_id: '',
+          role: 'guest' as const,
+          rsvp_status: body.rsvp_status ?? parent.rsvp_status,
+          relationship: body.relationship ?? parent.relationship ?? null,
+          meal_preference: body.meal_preference ?? parent.meal_preference ?? 'unknown',
+          accommodation: Boolean(body.accommodation ?? parent.accommodation),
+          plus_ones: 0,
+          plus_members: [],
+          age: body.age ?? null,
+          gender: body.gender ?? null,
+          dependent_group_id: groupId,
+          return_gift: body.return_gift ?? { quantity: 0 },
+          notes: body.notes ?? null,
+          gifts: [],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        const event = db.events.find((entry) => entry.id === request.params.eventId);
+        const contact = {
+          id: uid(),
+          family_id: event?.family_id ?? '',
+          name,
+          phone: body.phone ?? null,
+          phone_ext: null,
+          phone_number: normalizePhone(body.phone),
+          phone_norm: normalizePhone(body.phone),
+          email: body.email ?? null,
+          relation: guest.relationship,
+          source: 'manual',
+          last_synced_at: new Date().toISOString()
+        };
+        db.contacts.push(contact);
+        guest.contact_id = contact.id;
+        db.event_participants.push(guest);
+        return { data: guestFromParticipant(guest) };
+      });
+
+      this.get('/events/:eventId/guest-estimate', (_schema, request) => {
+        return { data: guestEstimate(request.params.eventId) };
       });
 
       this.get('/events/:eventId/finance-summary', (_schema, request) => {

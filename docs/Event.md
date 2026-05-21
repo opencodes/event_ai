@@ -1,18 +1,18 @@
 # Event Module Specification
-## Create, Template, Ritual & Admin Design
+## Event Creation, Templates & Ritual Planning
 
-**Version:** 1.1  
+**Version:** 1.2  
 **Status:** Draft  
 **Scope:** Event bounded context — creation, templates, rituals library, host planning, admin governance  
-**Related:** [HLD.md](./HLD.md) · [growth-strategy.md](./growth-strategy.md)
+**Related:** [HLD.md](./HLD.md) · [LLD.md](./LLD.md)
 
-> **Product principle:** Ship a **minimal event core** (Phase 0), then grow templates and rituals through **family reuse** (Phase 1) and **community contribution** (Phase 2). See [growth-strategy.md](./growth-strategy.md).
+> **Product principle:** Build event creation first, then let organizers save a successful event as a reusable template, then make new event creation faster through saved templates.
 
 ---
 
 ## Table of Contents
 
-0. [Phased Delivery (MVP → Community)](#0-phased-delivery-mvp--community)
+0. [Implementation Phases](#0-implementation-phases)
 1. [Overview](#1-overview)
 2. [Functional Requirements](#2-functional-requirements)
 3. [Data Design](#3-data-design)
@@ -33,15 +33,28 @@
 
 The **Event module** is the core of the platform. It lets organizers and hosts:
 
-- Create ceremonies from **ceremony templates** or scratch
+- Create ceremonies from scratch first, then from **saved ceremony templates**
 - Plan **sub-events**, **rituals**, schedules, and venues
 - Attach **muhurat**, **samagri**, and preparation checklists
 - Run **host planning** (Bhoj, materials, dependents, vidhi vyavhar)
 - Progress an event through **draft → published → in_progress → completed → archived**
 
-Templates and rituals live in a **library layer** (PostgreSQL JSONB in MVP → MongoDB when community catalog grows). Each created event **snapshots** template/ritual versions so platform or community edits never change live events.
+Templates and rituals live in a **library layer** (PostgreSQL JSONB for early family templates → MongoDB when the shared catalog grows). Events created from templates **snapshot** template/ritual versions so platform, family, or community edits never change live events.
 
-### 1.2 Actors
+### 1.2 Event Workspace Principle
+
+Event is the primary workspace object. After a user selects an event, the rest of the application should behave in the context of that selected event.
+
+| Rule | Detail |
+|------|--------|
+| Workspace selector | Show an event switcher in a persistent area such as a sidebar-bottom Events accordion or the top bar |
+| Selected event | Persist `activeEventId` in app settings for the user session |
+| Module scoping | Guests, rituals, finance, tasks, host planning, media, and reports read/write against the selected event |
+| Navigation | Selecting an event activates the workspace without changing page; event list/detail/create may also update the active workspace when opened directly |
+| Empty state | If no event is selected, modules show an event selection prompt instead of global data |
+| API calls | Module APIs include `event_id` in route or query once the workspace is selected |
+
+### 1.3 Actors
 
 | Actor | Event capabilities |
 |-------|-------------------|
@@ -52,7 +65,7 @@ Templates and rituals live in a **library layer** (PostgreSQL JSONB in MVP → M
 | **Admin** | Template/ritual library; approve community templates; override/support |
 | **Guest** | Read published event summary via invite link only (no event CRUD) |
 
-### 1.3 Event Lifecycle States
+### 1.4 Event Lifecycle States
 
 ```
 ┌────────┐    publish     ┌───────────┐   start date    ┌─────────────┐
@@ -83,40 +96,90 @@ Templates and rituals live in a **library layer** (PostgreSQL JSONB in MVP → M
 
 ---
 
-## 0. Phased Delivery (MVP → Community)
+## 0. Implementation Phases
 
-Requirements use **Phase** tags: **P0** (MVP), **P1** (retention), **P2** (community), **P3** (ecosystem).
+To ensure a solid architectural foundation and prioritize user-driven utility, the Event Module is implemented in four structured phases. Each phase builds logically upon the previous, starting with basic event creation, proceeding to template extraction, and culminating in full template utilization and community expansion.
 
-| Phase | Event module focus |
-|-------|-------------------|
-| **P0 MVP** | Draft event, 3 ceremony types, admin-seeded templates, checklist/samagri, manual guests, RSVP link, copy-to-WhatsApp invite |
-| **P1** | Family templates, contact import, WhatsApp API, muhurat, co-organizers, +2 ceremony types |
-| **P2** | Submit ritual/template, moderation, community browse, ratings, contributor reputation |
-| **P3** | Host planning, vendor links, priest samagri merge, full library search at scale |
+| Phase | Title | Primary Goal | Event Module Focus |
+|---|---|---|---|
+| **Phase 1** | **Create Event (From Scratch)** | Organizer can create and manage a complete, customized ceremony manually without any pre-existing templates. | Draft event creation, ceremony type selection, core metadata (title, locale, timezone), multi-day schedule/sub-events, manual rituals, per-ritual checklist tasks, samagri lists, and the draft-to-publish validation gate. |
+| **Phase 2** | **Save as Template** | Organizer can extract and save a successfully planned real-world event as a reusable family/private template. | Reusable template extraction engine, template metadata configuration (tradition, region, locale), automated exclusion of instance data (guests, RSVPs, invite links, notes), and local template catalog persistence. |
+| **Phase 3** | **Create Event With Template** | Organizer can spin up a new event instantly by applying a saved family template or a pre-seeded platform template. | Template browser interface, detail previewing, snapshot copy-on-write initialization (frozen instance configurations), and override diff management (organizer custom tweaks relative to template snapshot). |
+| **Phase 4** | **Extensions & Community Library** | Scale content and tools beyond individual families to the public community. | Community template sharing, content moderation queues, user reviews/ratings, elastic ritual searches, priest-Pandit integration, and advanced host logistics (Bhoj menu, materials checklist, return-gift ledger). |
 
-### 0.1 P0 — What We Build First
+---
 
+### 0.1 Phase 1 — Create Event (From Scratch)
+
+In this initial phase, the platform must support complete event customization without relying on pre-existing template records in the database. This ensures organizers have ultimate flexibility and prevents database lock-in.
+
+```mermaid
+graph TD
+    Start([Start: 'New Event']) --> PickCeremony[Pick Ceremony Type]
+    PickCeremony --> Basics[Enter Title, Locale, Timezone]
+    Basics --> DraftEvent[Save Draft Event]
+    DraftEvent --> AddSubEvents[Add Sub-Events & Schedule]
+    AddSubEvents --> AddRituals[Add Manual Rituals]
+    AddRituals --> ChecklistSamagri[Define Checklists & Samagri Items]
+    ChecklistSamagri --> PublishGate{Validation Gate: Title, Date, & >=1 Ritual?}
+    PublishGate -- No --> EditDraft[Edit Draft]
+    EditDraft --> DraftEvent
+    PublishGate -- Yes --> Publish[Publish Event & Activate Invites]
 ```
-Create event → Pick ceremony (Vivah | Mundan | Griha Pravesh)
-            → Apply 1 of few platform templates
-            → Edit checklist / samagri / date / venue
-            → Add guests (manual) → Publish
-            → Share RSVP link (user pastes in WhatsApp)
+
+> [!IMPORTANT]
+> **Phase 1 Rule:** Event creation must be completely self-contained and run on a relational model (PostgreSQL). It does NOT require or query template databases. The organizer represents the source of truth for all rituals, check-lists, and sub-events.
+>
+> **Excluded from Phase 1:** Save as template, create from template, Panchang/Muhurat API integration, community contributions, host Bhoj/material details, vendor marketplaces, and guest invite channels.
+
+---
+
+### 0.2 Phase 2 — Save Event as Template
+
+Once an organizer completes or successfully plans a custom event, they must be able to convert that plan into a private template for their family. This grounds the template system in actual real-world usage patterns rather than abstract admin builders.
+
+```mermaid
+graph LR
+    Event[Select Real Event] --> SaveTpl[Trigger 'Save as Template']
+    SaveTpl --> FilterData[System Filters Out Instance Data: Guests, RSVPs, Private Notes]
+    FilterData --> MetaForm[Organizer Fills Metadata: Template Name, Region, Tradition, Language]
+    MetaForm --> ConfirmSave[Review Extracted Sub-events, Rituals, & Checklists]
+    ConfirmSave --> SaveDb[(Save Private/Family Template)]
 ```
 
-**Not in P0:** community submit, Panchang API, host Bhoj/materials, bulk WhatsApp, rituals library search, MongoDB.
+> [!TIP]
+> **Phase 2 Rule:** Templates are *extracted* from actual instances. The system maps `events` -> `family_templates`, copying the nested hierarchy of `sub_events` and `event_rituals` (along with their associated checklists and samagri list structures) while strictly excluding personal data.
+>
+> **Excluded from Phase 2:** Platform templates, public community submission, template version upgrade migrations, and auto-applying templates.
 
-### 0.2 P2 — Social Contribution (Event Module)
+---
 
-| Action | Flow |
-|--------|------|
-| **Suggest ritual** | After `completed` event → "Share your ritual list" → diff vs template → submit `pending_review` |
-| **Suggest template** | Contributor packages sub-events + ritual refs → moderation → `community` template |
-| **Use community template** | Browse by region → same apply + snapshot as platform |
-| **Rate after use** | Organizer rates once per event; feeds `usage_count` + `avg_rating` |
-| **Report** | Flag incorrect/offensive content → hide pending review |
+### 0.3 Phase 3 — Create Event With Template
 
-Contributor fields on templates/rituals: `contribution_source`, `contributor_user_id`, `status`, `usage_count`, `parent_template_id` (fork lineage).
+With family and platform templates populated, organizers can dramatically accelerate event setup. Applying a template bootstraps the entire workflow while maintaining full editing autonomy.
+
+```mermaid
+graph TD
+    StartTpl([Start: 'New Event with Template']) --> BrowseTpls[Browse Family & Platform Templates]
+    BrowseTpls --> PreviewTpl[Preview Blueprint: Rituals, Schedules, Checklists]
+    PreviewTpl --> ApplyTpl[Apply Template to New Event]
+    ApplyTpl --> SnapshotTpl[Clone Snapshot to Event Schema]
+    SnapshotTpl --> CustomFields[Organizer Enters Event-Specific Dates, Venue, Title]
+    CustomFields --> EditInstance[Customize Instance: Skip, Add, or Reorder Rituals]
+    EditInstance --> Publish[Publish Event]
+```
+
+> [!IMPORTANT]
+> **Phase 3 Rule:** Applying a template creates a **frozen copy (snapshot)** at the moment of initialization. Subsequent edits to the template document MUST NOT affect already generated event instances. Any customized changes made by the organizer are recorded as local overrides on the event itself.
+>
+> **Excluded from Phase 3:** Community submissions, review moderation queue, rating/feedback loops, and curator overrides.
+
+---
+
+### 0.4 Phase 4 — Extensions & Community Library
+
+Once the core creation and templating workflows are verified and stable, the platform expands to allow community contribution, professional curate controls, and detailed host logistical dashboards.
+
 
 ---
 
@@ -126,78 +189,78 @@ Contributor fields on templates/rituals: `contribution_source`, `contributor_use
 
 | ID | Requirement | Phase |
 |----|-------------|-------|
-| E-001 | Create event with `ceremony_type`, title, primary locale | P0 |
-| E-002 | Save as `draft` without required date/venue | P0 |
-| E-003 | Update event metadata (title, description, cover image, tags) | P0 |
-| E-004 | Delete draft event (hard delete); cancel published event (soft) | P0 |
-| E-005 | Duplicate event from existing (copy rituals, not guests) | P1 |
-| E-006 | List events for user (filter: status, ceremony_type, date range) | P0 |
-| E-007 | Event visibility: `private`, `invite_only` (P0); `unlisted_public` (P1) | P0/P1 |
-| E-008 | Assign `region_code` and `tradition` for template matching | P0 |
-| E-009 | Link event to `user_id` (organizer) and optional `host_user_id` | P0 |
-| E-010 | Add co-organizers with granular permissions | P1 |
+| E-001 | Create event with `ceremony_type`, title, primary locale | Phase 1 |
+| E-002 | Save as `draft` without required date/venue | Phase 1 |
+| E-003 | Update event metadata (title, description, cover image, tags) | Phase 1 |
+| E-004 | Delete draft event (hard delete); cancel published event (soft) | Phase 1 |
+| E-005 | Duplicate event from existing (copy rituals, not guests) | Phase 3 |
+| E-006 | List events for user (filter: status, ceremony_type, date range) | Phase 1 |
+| E-007 | Event visibility: `private`, `invite_only` (Phase 1); `unlisted_public` (Phase 4) | Phase 1/4 |
+| E-008 | Assign `region_code` and `tradition` for template matching | Phase 1 |
+| E-009 | Link event to `user_id` (organizer) and optional `host_user_id` | Phase 1 |
+| E-010 | Add co-organizers with granular permissions | Phase 4 |
 
 ### 2.2 Ceremony & Schedule
 
 | ID | Requirement | Phase |
 |----|-------------|-------|
-| E-020 | Ceremony types: Vivah, Mundan, Griha Pravesh (P0); +Upnayan, Naamkaran, Other (P1) | P0/P1 |
-| E-021 | Apply **ceremony template** → populate rituals & default sub-events | P0 |
-| E-022 | Add/edit/remove **sub-events** (e.g. Haldi Day 1, Pheras) with start/end | P1 (P0: single-day only) |
-| E-023 | Multi-day events: timeline view across days | P1 |
-| E-024 | Venue per sub-event or shared master venue | P0 (master venue only) / P1 |
-| E-025 | Integrate **muhurat**: fetch suggestions, pick window, manual override | P1 (P0: manual date only) |
-| E-026 | Store muhurat source, tithi, nakshatra, priest override flag | P1 |
-| E-027 | Attach Google/Outlook calendar export (ICS) per sub-event | P2 |
+| E-020 | Ceremony types: Vivah, Mundan, Griha Pravesh (Phase 1); +Upnayan, Naamkaran, Other (Phase 4) | Phase 1/4 |
+| E-021 | Apply **ceremony template** → populate rituals & default sub-events | Phase 3 |
+| E-022 | Add/edit/remove **sub-events** (e.g. Haldi Day 1, Pheras) with start/end | Phase 1 |
+| E-023 | Multi-day events: timeline view across days | Phase 1 |
+| E-024 | Venue per sub-event or shared master venue | Phase 1 |
+| E-025 | Integrate **muhurat**: fetch suggestions, pick window, manual override | Phase 4 (Phase 1: manual date only) |
+| E-026 | Store muhurat source, tithi, nakshatra, priest override flag | Phase 4 |
+| E-027 | Attach Google/Outlook calendar export (ICS) per sub-event | Phase 4 |
 
 ### 2.3 Rituals & Checklists (Event Instance)
 
 | ID | Requirement | Phase |
 |----|-------------|-------|
-| E-030 | Instantiate rituals from template snapshot | P0 |
-| E-031 | Reorder, skip, or add custom rituals on event | P0 |
-| E-032 | Per-ritual checklist items (done/todo; assignee/due P1) | P0 |
-| E-033 | Samagri list per ritual (template + custom lines) | P0 |
-| E-034 | Mark ritual status: `planned`, `ready`, `in_progress`, `done` | P0 |
-| E-035 | Offline sync of ritual checklists (mobile) | P1 |
-| E-036 | Priest can suggest samagri edits on linked booking | P3 |
-| E-037 | After event completed, prompt to submit ritual diff to community | P2 |
+| E-030 | Add rituals manually to event | Phase 1 |
+| E-031 | Reorder, skip, or add custom rituals on event | Phase 1 |
+| E-032 | Per-ritual checklist items (done/todo; assignee/due Phase 4) | Phase 1 |
+| E-033 | Samagri list per ritual | Phase 1 |
+| E-034 | Mark ritual status: `planned`, `ready`, `in_progress`, `done` | Phase 1 |
+| E-035 | Instantiate rituals from template snapshot | Phase 3 |
+| E-036 | Priest can suggest samagri edits on linked booking | Phase 4 |
+| E-037 | After event completed, prompt to submit ritual diff to community | Phase 4 |
 
 ### 2.4 Host Planning (Extended)
 
 | ID | Requirement | Phase |
 |----|-------------|-------|
-| E-040 | Guest estimate: invitees, villagers, buffer % | P3 |
-| E-041 | Dependent guest groups (parent/guardian, linked members) | P3 |
-| E-042 | **Bhoj** plan: menu items, veg/Jain splits, serving counts | P3 |
-| E-043 | Material tracker: bartan, kirana, milk, curd, kapra, sundry | P3 |
-| E-044 | Vendor assignment per material line (marketplace link) | P3 |
-| E-045 | Vidhi vyavhar task list (purchases, errands, completion %) | P3 |
-| E-046 | Chuman/gift ledger and return-gift planning | P3 |
-| E-047 | Preparation dashboard (rituals + checklist only in P1) | P1 (rituals only) / P3 (full) |
+| E-040 | Guest estimate: invitees, villagers, buffer % | Phase 4 |
+| E-041 | Dependent guest groups (parent/guardian, linked members) | Phase 4 |
+| E-042 | **Bhoj** plan: menu items, veg/Jain splits, serving counts | Phase 4 |
+| E-043 | Material tracker: bartan, kirana, milk, curd, kapra, sundry | Phase 4 |
+| E-044 | Vendor assignment per material line (marketplace link) | Phase 4 |
+| E-045 | Vidhi vyavhar task list (purchases, errands, completion %) | Phase 4 |
+| E-046 | Chuman/gift ledger and return-gift planning | Phase 4 |
+| E-047 | Preparation dashboard (rituals + checklist only in Phase 1) | Phase 1 (rituals only) / Phase 4 (full) |
 
 ### 2.5 Template & Library Usage
 
 | ID | Requirement | Phase |
 |----|-------------|-------|
-| E-050 | Browse templates: platform only (P0); + community (P2) | P0/P2 |
-| E-051 | Preview template rituals before apply | P0 |
-| E-052 | Fork → save as **family template** (private) | P1 |
-| E-053 | Search rituals library; add ritual atom to event | P2 (P0: inline custom ritual only) |
-| E-054 | Show template version + source (platform/community/family) | P0 |
-| E-055 | Rate community template after event use | P2 |
-| E-056 | Report community template or ritual | P2 |
+| E-050 | Save event as **family template** (private) | Phase 2 |
+| E-051 | Extract template from event sub-events, rituals, checklist, and samagri | Phase 2 |
+| E-052 | Browse templates: family/platform (Phase 3); + community (Phase 4) | Phase 3/4 |
+| E-053 | Preview template rituals before apply | Phase 3 |
+| E-054 | Show template version + source (platform/community/family) | Phase 3 |
+| E-055 | Search rituals library; add ritual atom to event | Phase 4 (Phase 1: inline custom ritual only) |
+| E-056 | Rate/report community template or ritual | Phase 4 |
 
 ### 2.6 Publishing & Governance
 
 | ID | Requirement | Phase |
 |----|-------------|-------|
-| E-060 | Publish validates: title, date, ≥1 ritual | P0 |
-| E-061 | Unpublish returns to draft if no invites sent; else block | P0 |
-| E-062 | Audit log: who changed what on event | P1 |
-| E-063 | Export event plan PDF (schedule + rituals + samagri) | P2 |
-| E-064 | Contributor submit template/ritual → moderation queue | P2 |
-| E-065 | Regional curator approve submissions (optional role) | P2+ |
+| E-060 | Publish validates: title, date, ≥1 ritual | Phase 1 |
+| E-061 | Unpublish returns to draft if no invites sent; else block | Phase 1 |
+| E-062 | Audit log: who changed what on event | Phase 4 |
+| E-063 | Export event plan PDF (schedule + rituals + samagri) | Phase 4 |
+| E-064 | Contributor submit template/ritual → moderation queue | Phase 4 |
+| E-065 | Regional curator approve submissions (optional role) | Phase 4 |
 
 ---
 
@@ -207,9 +270,9 @@ Contributor fields on templates/rituals: `contribution_source`, `contributor_use
 
 | Entity group | Store | Notes |
 |--------------|-------|-------|
-| `events`, `sub_events`, `event_rituals`, `event_members`, host planning tables | **PostgreSQL** | Transactional, relational |
-| `ceremony_templates`, `ritual_definitions`, `template_versions` | **MongoDB** | Flexible schema, i18n blobs |
-| `family_templates` (user forks) | **MongoDB** or PostgreSQL JSONB | MVP: MongoDB |
+| `events`, `sub_events`, `event_rituals`, `event_members`, host planning tables | **PostgreSQL** | Transactional, relational (Core for Phase 1) |
+| `ceremony_templates`, `ritual_definitions`, `template_versions` | **MongoDB** | Introduced in Phase 3 / Phase 4 for reusable library scale |
+| `family_templates` (saved event templates) | **MongoDB** or PostgreSQL JSONB | Phase 2 can start with PostgreSQL JSONB; move to MongoDB when library grows |
 | Cover images, exported PDFs | **S3** | CDN URLs in PostgreSQL |
 | Template browse cache | **Redis** | Key: `tpl:list:{ceremony}:{region}` |
 
@@ -256,7 +319,8 @@ CREATE TABLE events (
   cover_image_url   TEXT,
   venue_master      JSONB,                 -- default venue snapshot
   muhurat           JSONB,                 -- see §3.5
-  template_snapshot JSONB NOT NULL,        -- frozen copy from Mongo at apply
+  creation_source   VARCHAR(32) NOT NULL DEFAULT 'scratch', -- scratch, template, duplicate
+  template_snapshot JSONB,                 -- frozen copy from template at apply; null for scratch
   template_source   JSONB,                 -- {type, id, version}
   overlay_diff      JSONB,                 -- organizer fork vs template
   preparation_pct   SMALLINT DEFAULT 0,
@@ -510,11 +574,44 @@ Organizer changes relative to snapshot:
 }
 ```
 
+### 3.8 Family Template Document
+
+Created in **Phase 2** when an organizer saves an event as a template.
+
+```json
+{
+  "_id": "family_tpl_vivah_jha_2026",
+  "family_id": "fam_123",
+  "source_event_id": "event_123",
+  "type": "family",
+  "status": "active",
+  "version": "1.0.0",
+  "ceremony_type": "vivah",
+  "regions": ["IN-BR"],
+  "traditions": ["maithil"],
+  "supported_locales": ["hi", "en"],
+  "metadata": {
+    "title": { "hi": "झा परिवार विवाह", "en": "Jha Family Wedding" },
+    "description": { "en": "Reusable family wedding plan" }
+  },
+  "template_snapshot": {
+    "sub_events": [],
+    "rituals": [],
+    "checklists": [],
+    "samagri": []
+  },
+  "excluded_from_source": ["guests", "rsvps", "invite_links", "audit_logs", "private_notes"],
+  "created_by": "user_123",
+  "created_at": "2026-05-21T10:00:00Z",
+  "updated_at": "2026-05-21T10:00:00Z"
+}
+```
+
 ---
 
 ## 4. User Flows
 
-### 4.1 Create Event (Happy Path)
+### 4.1 Phase 1 — Create Event From Scratch
 
 ```
 ┌─────────────┐
@@ -523,38 +620,23 @@ Organizer changes relative to snapshot:
 └──────┬──────┘
        ▼
 ┌─────────────────────┐     No
-│ Pick ceremony type  │────────► Custom "Other" → minimal template
-└──────┬──────────────┘
-       ▼
-┌─────────────────────┐
-│ Region + tradition  │  (auto-suggest templates)
-└──────┬──────────────┘
-       ▼
-┌─────────────────────┐     Skip
-│ Browse templates    │────────► Blank event (add rituals manually)
-│ Preview → Apply     │
+│ Pick ceremony type  │────────► Custom "Other" → blank event
 └──────┬──────────────┘
        ▼
 ┌─────────────────────┐
 │ Event title, locale │
+│ date, venue         │
 │ Save DRAFT          │
 └──────┬──────────────┘
        ▼
-┌─────────────────────┐     Optional branch
-│ Muhurat wizard      │────► Panchang API → pick window → set start_at
+┌─────────────────────┐
+│ Add sub-events      │
+│ & schedule          │
 └──────┬──────────────┘
        ▼
 ┌─────────────────────┐
-│ Edit sub-events     │  timeline drag-drop
-│ & venues            │
-└──────┬──────────────┘
-       ▼
-┌─────────────────────┐
-│ Customize rituals   │  add/remove/reorder, checklists, samagri
-└──────┬──────────────┘
-       ▼
-┌─────────────────────┐     Optional
-│ Host planning       │  Bhoj, materials, estimates
+│ Add rituals         │
+│ checklist, samagri  │
 └──────┬──────────────┘
        ▼
 ┌─────────────────────┐
@@ -562,35 +644,107 @@ Organizer changes relative to snapshot:
 └─────────────────────┘
 ```
 
-### 4.2 Screen Map (Organizer)
+### 4.2 Phase 2 — Save Event as Template
+
+```
+┌─────────────────────┐
+│ Open existing event │
+└──────┬──────────────┘
+       ▼
+┌─────────────────────┐
+│ Save as template    │
+└──────┬──────────────┘
+       ▼
+┌─────────────────────┐
+│ Template metadata   │
+│ name, region, tags  │
+└──────┬──────────────┘
+       ▼
+┌─────────────────────┐
+│ Review extracted    │
+│ rituals & samagri   │
+└──────┬──────────────┘
+       ▼
+┌─────────────────────┐
+│ Save family template│
+└─────────────────────┘
+```
+
+### 4.3 Phase 3 — Create Event With Template
+
+```
+┌─────────────┐
+│ Start       │
+│ "New Event" │
+└──────┬──────┘
+       ▼
+┌─────────────────────┐
+│ Pick ceremony type  │
+│ region + tradition  │
+└──────┬──────────────┘
+       ▼
+┌─────────────────────┐
+│ Browse templates    │
+│ Preview → Use       │
+└──────┬──────────────┘
+       ▼
+┌─────────────────────┐
+│ Create draft event  │
+│ from snapshot       │
+└──────┬──────────────┘
+       ▼
+┌─────────────────────┐
+│ Edit event-specific │
+│ date, venue, rituals│
+└──────┬──────────────┘
+       ▼
+┌─────────────────────┐
+│ Review → Publish    │  validation gate
+└─────────────────────┘
+```
+
+### 4.4 Screen Map (Organizer)
 
 | Step | Screen | Key actions |
 |------|--------|-------------|
 | 1 | Ceremony picker | Grid of ceremony types with icons |
-| 2 | Region selector | State/region + tradition dropdown |
-| 3 | Template gallery | Filters, preview drawer, "Use template" |
-| 4 | Event basics | Title, description, cover, visibility |
-| 5 | Schedule | Multi-day timeline, sub-event cards |
-| 6 | Muhurat | Calendar + auspicious windows |
-| 7 | Rituals | List by day; drill into checklist/samagri |
-| 8 | Host plan | Tabs: Guests est., Bhoj, Materials, Tasks |
+| 2 | Event basics | Title, description, cover, visibility |
+| 3 | Schedule | Multi-day timeline, sub-event cards |
+| 4 | Rituals | List by day; drill into checklist/samagri |
+| 5 | Template gallery | Phase 3: filters, preview drawer, "Use template" |
+| 6 | Save template | Phase 2: metadata + extracted reusable content review |
+| 7 | Muhurat | Phase 4: calendar + auspicious windows |
+| 8 | Host plan | Phase 4: Guests est., Bhoj, Materials, Tasks |
 | 9 | Review | Checklist of missing items; Publish CTA |
 
-### 4.3 Apply Template Flow (Data)
+### 4.5 Apply Template Flow (Data)
 
 ```
 User selects template_id
     → GET /templates/{id} (Mongo)
     → Server resolves ritual_refs → ritual_definitions
     → BEGIN TRANSACTION
-        INSERT events (status=draft, template_snapshot=resolved)
+        INSERT events (status=draft, creation_source=template, template_snapshot=resolved)
         INSERT sub_events FROM sub_event_blueprints
         INSERT event_rituals + checklist + samagri FROM snapshots
     → COMMIT
     → Return event_id + redirect to Schedule screen
 ```
 
-### 4.4 Edit Published Event
+### 4.6 Save Template Flow (Data)
+
+```
+User selects "Save as template" on event_id
+    → GET event detail with sub_events, event_rituals, checklist, samagri
+    → Server builds reusable template document
+    → Organizer confirms metadata and removes event-specific notes
+    → INSERT family_templates
+    → Return template_id
+```
+
+Template extraction excludes guests, RSVP data, invite links, audit logs, published status, and private notes by default.
+
+### 4.7 Edit Published Event
 
 | Change | Allowed? | Behavior |
 |--------|----------|----------|
@@ -601,7 +755,7 @@ User selects template_id
 | Visibility tighten | Yes | Immediate |
 | Visibility loosen | Yes | Audit log |
 
-### 4.5 Host Planning Flow
+### 4.8 Host Planning Flow
 
 ```
 Host opens event → Host Planning tab
@@ -623,7 +777,7 @@ Host opens event → Host Planning tab
 | Host materials procured | 10% |
 | Host tasks done | 5% |
 
-### 4.6 Co-Organizer Invite Flow
+### 4.9 Co-Organizer Invite Flow
 
 ```
 Organizer → Invite by phone/email
@@ -645,11 +799,13 @@ Curated **ceremony templates** bundle sub-events, ritual references, default tim
 
 | Type | Owner | Visibility | Phase |
 |------|-------|------------|-------|
-| **Platform** | Admin (seed ~5 for MVP) | All users | P0 |
-| **Family** | Organizer | Private to user/family | P1 |
-| **Community** | Contributor + moderation | Public after approve | P2 |
+| **Platform** | Admin (seed after scratch flow is stable) | All users | Phase 3 |
+| **Family** | Organizer | Private to user/family | Phase 2 |
+| **Community** | Contributor + moderation | Public after approve | Phase 4 |
 
 ### 5.3 Library Browse (Organizer UI)
+
+Available from **Phase 3** for family/platform templates and **Phase 4** for community templates.
 
 **Filters:**
 
@@ -687,15 +843,19 @@ resolve_template(template_id, locale, region_code):
 | Deprecation | Old versions `status: deprecated`; browse hides unless already used |
 | Migration | No auto-migrate live events; offer "Apply new template to copy" |
 
-### 5.6 Family Template Fork
+### 5.6 Save Event as Family Template
 
 ```
-Platform template → Organizer edits in wizard → "Save as family template"
+Existing event → Organizer selects "Save as template"
+  → System extracts reusable sub-events, rituals, checklist, samagri
+  → Organizer edits metadata and removes event-specific details
   → Mongo family_templates collection
-  → { family_id, parent_template_id, overlay_diff, metadata }
+  → { family_id, source_event_id, metadata, template_snapshot }
 ```
 
-Re-use: create event from `family_template_id` → apply overlay on top of parent snapshot.
+Re-use: create event from `family_template_id` → snapshot the family template into a new draft event.
+
+If the family template was originally created from a platform/community template, retain `parent_template_id` and `overlay_diff` for lineage, but the Phase 2 implementation can store the resolved family snapshot directly.
 
 ---
 
@@ -818,7 +978,7 @@ If ritual missing in library:
 | `slug` unique per ceremony_type | Yes |
 | Cover image present | Warning |
 
-### 7.6 Community Submission Flow (Phase 2)
+### 7.6 Community Submission Flow (Phase 4)
 
 ```
 Organizer completes event → optional "Contribute your plan"
@@ -833,7 +993,7 @@ Organizer completes event → optional "Contribute your plan"
 
 **Ritual-only submission:** Single ritual JSON from event customizations—lighter review than full templates.
 
-### 7.7 Contributor Reputation (Phase 2)
+### 7.7 Contributor Reputation (Phase 4)
 
 | Field | Use |
 |-------|-----|
@@ -936,14 +1096,15 @@ Base path: `/api/v1`
 | DELETE | `/events/{id}` | Delete draft only |
 | POST | `/events/{id}/duplicate` | Clone |
 
-### 9.2 Template Application
+### 9.2 Templates
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/templates` | Browse library (filters) |
-| GET | `/templates/{id}` | Preview resolved template |
-| POST | `/events/{id}/apply-template` | Body: `{ template_id }` |
-| POST | `/events/{id}/save-family-template` | Fork to family library |
+| POST | `/events/{id}/templates` | Phase 2: save event as family template |
+| GET | `/templates` | Phase 3: browse library (filters) |
+| GET | `/templates/{id}` | Phase 3: preview resolved template |
+| POST | `/events/from-template` | Phase 3: create draft event from `{ template_id }` |
+| POST | `/events/{id}/apply-template` | Phase 3 optional: apply template to an existing empty draft |
 
 ### 9.3 Sub-events & Rituals
 
@@ -1000,11 +1161,13 @@ Base path: `/api/v1`
 | BR-03 | Publish requires ≥1 non-skipped ritual |
 | BR-04 | `end_at` must be ≥ `start_at` if both set |
 | BR-05 | Cannot delete published event with guests &gt;0 → use cancel |
-| BR-06 | Template apply only on `draft` status |
+| BR-06 | Template apply only on `draft` status and only before event has user-entered rituals/sub-events, unless user confirms overwrite |
 | BR-07 | Family template visible only to same `family_id` members |
 | BR-08 | Skipped ritual retains samagri but excluded from preparation % |
 | BR-09 | Region filter: template shown if `region_code` intersects OR template.regions contains `*` |
 | BR-10 | Co-organizer cannot publish unless `event.publish` permission |
+| BR-11 | Save-as-template excludes guests, invite links, RSVP data, audit logs, private notes, and published/cancelled status |
+| BR-12 | Event created from template must store `creation_source=template`, `template_source`, and frozen `template_snapshot` |
 
 ---
 
@@ -1029,6 +1192,7 @@ Base path: `/api/v1`
 |---------|------|---------|
 | 1.0 | May 2026 | Initial event module spec |
 | 1.1 | May 2026 | Phased MVP→community delivery; aligned with growth-strategy.md |
+| 1.2 | May 2026 | Refocused implementation phases: create event, save as template, create event with template |
 
 ---
 

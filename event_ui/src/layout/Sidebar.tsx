@@ -1,8 +1,10 @@
-import { Home, Users, DollarSign, Calendar, ContactRound, LogOut, Shield, UserCog, UsersRound, Settings, History } from 'lucide-react';
+import { useState } from 'react';
+import { Calendar, ChevronDown, Home, LogOut, Plus, Settings, Shield, UserCog, Users, UsersRound } from 'lucide-react';
 import { useAuth } from '@/core/auth';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { canAccessModule, isAdminUser } from '@/core/user/permissions';
+import { canAccessModule } from '@/core/user/permissions';
 import { ThemeLogo } from '@/layout';
+import { useEventWorkspace } from '@/modules/events/context';
 
 interface SidebarProps {
   activeTab?: string;
@@ -14,13 +16,15 @@ interface SidebarProps {
 
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: Home, path: '/', module: 'dashboard' },
-  { id: 'settings', label: 'Settings', icon: Settings, path: '/settings', module: 'events' },
+  { id: 'guests', label: 'Guests', icon: UsersRound, path: '/guests', module: 'contacts' },
 ];
 
 export default function Sidebar({ mobileOpen, onMobileToggle, isCollapsed = false }: SidebarProps) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { events, selectedEventId, isLoadingEvents, setSelectedEventId } = useEventWorkspace();
+  const [eventsOpen, setEventsOpen] = useState(true);
   const rootNavItems = [
     { id: 'root-permissions', label: 'Permissions', icon: Shield, path: '/root/permissions' },
     { id: 'root-roles', label: 'Roles', icon: UserCog, path: '/root/roles' },
@@ -30,11 +34,9 @@ export default function Sidebar({ mobileOpen, onMobileToggle, isCollapsed = fals
   const items = user?.role === 'root'
     ? rootNavItems
     : navItems.filter((item) => item.module === 'dashboard' || canAccessModule(user, item.module));
-  const finalItems = user?.role === 'root'
-    ? items
-    : isAdminUser(user)
-      ? [...items]
-      : items;
+  const finalItems = items;
+  const showWorkspaceAccordions = user?.role !== 'root';
+  const canUseEvents = canAccessModule(user, 'events');
 
   const getInitials = (name: string) => {
     return name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2);
@@ -91,6 +93,82 @@ export default function Sidebar({ mobileOpen, onMobileToggle, isCollapsed = fals
             );
           })}
         </nav>
+
+        {showWorkspaceAccordions && (
+          <div className={`border-t border-[var(--panel-border)] px-2.5 py-3 space-y-2 ${isCollapsed ? 'md:px-2' : ''}`}>
+            {canUseEvents && (
+              <div>
+                <button
+                  onClick={() => {
+                    if (isCollapsed) {
+                      navigate('/events');
+                    } else {
+                      setEventsOpen((open) => !open);
+                    }
+                  }}
+                  className={`nav-item w-full ${location.pathname.startsWith('/events') ? 'nav-item-active' : ''} ${isCollapsed ? 'md:justify-center md:px-2' : ''}`}
+                  aria-label="Events"
+                >
+                  <Calendar className="w-4 h-4 shrink-0" />
+                  <span className={`${isCollapsed ? 'md:hidden' : ''} truncate flex-1 text-left`}>Events</span>
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform ${eventsOpen ? 'rotate-180' : ''} ${isCollapsed ? 'md:hidden' : ''}`} />
+                </button>
+
+                {eventsOpen && !isCollapsed && (
+                  <div className="mt-1 pl-3 space-y-1">
+                    <button
+                      onClick={() => {
+                        navigate('/events/new');
+                        if (mobileOpen) onMobileToggle();
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-[12px] font-semibold text-[var(--app-fg-muted)] hover:text-[var(--app-fg)] hover:bg-[var(--surface-muted)] transition-colors"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Create Event</span>
+                    </button>
+
+                    {isLoadingEvents ? (
+                      <p className="px-3 py-2 text-[12px] text-[var(--app-fg-muted)]">Loading events...</p>
+                    ) : events.length === 0 ? (
+                      <p className="px-3 py-2 text-[12px] text-[var(--app-fg-muted)]">No events yet</p>
+                    ) : (
+                      <div className="space-y-1 max-h-[210px] overflow-y-auto pr-1">
+                        {events.map((event) => (
+                          <button
+                            key={event.id}
+                            onClick={() => {
+                              setSelectedEventId(event.id);
+                              if (mobileOpen) onMobileToggle();
+                            }}
+                            className={`w-full text-left px-3 py-2 rounded-lg text-[12px] transition-colors ${
+                              selectedEventId === event.id
+                                ? 'bg-[var(--primary-light)] text-[var(--primary-text)] font-semibold'
+                                : 'text-[var(--app-fg-muted)] hover:text-[var(--app-fg)] hover:bg-[var(--surface-muted)]'
+                            }`}
+                          >
+                            <span className="block truncate">{event.title}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <button
+              onClick={() => {
+                navigate('/settings');
+                if (mobileOpen) onMobileToggle();
+              }}
+              className={`nav-item w-full ${location.pathname.startsWith('/settings') ? 'nav-item-active' : ''} ${isCollapsed ? 'md:justify-center md:px-2' : ''}`}
+              aria-label="Settings"
+            >
+              <Settings className="w-4 h-4 shrink-0" />
+              <span className={`${isCollapsed ? 'md:hidden' : ''} truncate`}>Settings</span>
+            </button>
+          </div>
+        )}
 
         {/* User section */}
         <div className={`border-t border-[var(--panel-border)] ${isCollapsed ? 'p-2' : 'p-3'}`}>

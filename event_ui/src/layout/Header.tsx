@@ -1,8 +1,9 @@
-import { Menu, Bell, Flame, Moon, Sun, KeyRound } from 'lucide-react';
+import { Menu, Bell, Flame, Moon, Sun, KeyRound, CalendarDays } from 'lucide-react';
 import { useAuth } from '@/core/auth';
 import { useDarkMode } from '@/hooks/useDarkMode';
 import { useState } from 'react';
 import { authAPI } from '@/core/api';
+import { useEventWorkspace } from '@/modules/events/context';
 
 interface HeaderProps {
   onMobileMenuToggle?: () => void;
@@ -11,6 +12,7 @@ interface HeaderProps {
 export default function Header({ onMobileMenuToggle }: HeaderProps) {
   const { user } = useAuth();
   const { isDarkMode, toggleDarkMode } = useDarkMode();
+  const { selectedEvent } = useEventWorkspace();
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -69,10 +71,10 @@ export default function Header({ onMobileMenuToggle }: HeaderProps) {
         </button>
         <div>
           <h1 className="font-semibold text-[var(--app-fg)] text-[15px] leading-tight tracking-[-0.02em]">
-            {getGreeting()}, {user?.full_name || 'User'}
+            {selectedEvent?.title || 'No event selected'}
           </h1>
           <p className="text-[11px] text-[var(--app-fg-muted)] hidden sm:block leading-tight mt-0.5">
-            {new Date().toLocaleDateString('en-US', {
+            {new Date(selectedEvent?.start_at || new Date()).toLocaleDateString('en-US', {
               weekday: 'long',
               month: 'long',
               day: 'numeric',
@@ -81,14 +83,9 @@ export default function Header({ onMobileMenuToggle }: HeaderProps) {
         </div>
       </div>
 
+    
+
       <div className="flex items-center gap-1.5">
-        <button
-          onClick={() => setShowChangePassword(true)}
-          className="icon-button"
-          title="Change password"
-        >
-          <KeyRound className="w-4 h-4" />
-        </button>
         <button
           onClick={toggleDarkMode}
           className="icon-button"
@@ -112,74 +109,7 @@ export default function Header({ onMobileMenuToggle }: HeaderProps) {
           <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-[var(--panel-bg)]" />
         </button>
       </div>
-
-      {showChangePassword && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="rounded-2xl shadow-modal max-w-md w-full p-6 glass-black-surface border border-[var(--panel-border)]">
-            <h2 className="text-xl font-bold text-[var(--app-fg)] mb-1">Change Password</h2>
-            <p className="text-sm text-[var(--app-fg-muted)] mb-5">Enter your current password and choose a new one.</p>
-            <form onSubmit={handleChangePassword} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-[var(--app-fg)] mb-1.5">Current Password</label>
-                <input
-                  type="password"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  disabled={isSavingPassword}
-                  className="input-theme"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-[var(--app-fg)] mb-1.5">New Password</label>
-                <input
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  disabled={isSavingPassword}
-                  className="input-theme"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-[var(--app-fg)] mb-1.5">Confirm New Password</label>
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  disabled={isSavingPassword}
-                  className="input-theme"
-                />
-              </div>
-              {passwordError && (
-                <div className="alert-error flex items-start gap-2">
-                  <p className="text-sm">{passwordError}</p>
-                </div>
-              )}
-              {passwordSuccess && (
-                <div className="alert-success flex items-start gap-2">
-                  <p className="text-sm">{passwordSuccess}</p>
-                </div>
-              )}
-              <div className="flex gap-3 pt-1">
-                <button
-                  type="button"
-                  onClick={() => { setShowChangePassword(false); setPasswordError(''); setPasswordSuccess(''); }}
-                  disabled={isSavingPassword}
-                  className="flex-1 btn-secondary"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSavingPassword}
-                  className="flex-1 ai-gradient-button text-white px-4 py-2.5 rounded-lg disabled:opacity-50 font-semibold text-sm"
-                >
-                  {isSavingPassword ? 'Saving...' : 'Save'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+ 
     </header>
   );
 }

@@ -1,4 +1,4 @@
-import type { Card } from './api';
+import type { Card } from '../api';
 
 const bankGradientMap: Record<string, string> = {
   hdfc: 'bg-gradient-to-br from-blue-600 to-indigo-700',

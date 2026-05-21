@@ -130,6 +130,7 @@ export default function SettingsPage() {
   const restoreDefaults = () => {
     resetSettings();
     const defaults: AppSettings = {
+      activeEventId: null,
       participantRsvpStatuses: ['Pending Invitation', 'Invited', 'Attended'],
       participantGenders: ['Female', 'Male', 'Non-binary', 'Prefer not to say'],
       participantAgeGroups: ['Child', 'Teen', 'Adult', 'Senior'],

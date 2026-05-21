@@ -5,6 +5,11 @@ import { AppSettingsProvider } from '@/core/settings';
 import { Settings, RootUsers, RootPermissions, RootRoles, RootGroups } from '@/core/user';
 import { isAdminUser } from '@/core/user/permissions';
 import { Dashboard } from './modules/dashboard';
+import { EventWizardPage } from './modules/events/pages/EventWizardPage';
+import { EventListPage } from './modules/events/pages/EventListPage';
+import { EventDetailPage } from './modules/events/pages/EventDetailPage';
+import { GuestManagementPage } from './modules/events/pages/GuestManagementPage';
+import { EventWorkspaceProvider } from './modules/events/context';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -57,6 +62,38 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/events"
+        element={
+          <ProtectedRoute>
+            <EventListPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/events/new"
+        element={
+          <ProtectedRoute>
+            <EventWizardPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/events/:id"
+        element={
+          <ProtectedRoute>
+            <EventDetailPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/guests"
+        element={
+          <ProtectedRoute>
+            <GuestManagementPage />
+          </ProtectedRoute>
+        }
+      />
       <Route path="/reset-password" element={isAuthenticated ? <Navigate to="/settings" /> : <ResetPassword />} />
       <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/settings" />} />
@@ -70,7 +107,9 @@ function App() {
       <AuthProvider>
         <DarkModeProvider>
           <AppSettingsProvider>
-            <AppRoutes />
+            <EventWorkspaceProvider>
+              <AppRoutes />
+            </EventWorkspaceProvider>
           </AppSettingsProvider>
         </DarkModeProvider>
       </AuthProvider>
