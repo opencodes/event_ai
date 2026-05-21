@@ -89,3 +89,6 @@ temp/
 .cursor/rules/diff-format.mdc
 docs/MICROSERVICE_SOURCE.md
 docs/MICROSERVICE_SOURCE.md
+event_ms/package-lock.json
+.gitignore
+event_ui/package-lock.json
