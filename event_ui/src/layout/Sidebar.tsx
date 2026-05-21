@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Calendar, ChevronDown, Home, LogOut, Plus, Settings, Shield, UserCog, Users, UsersRound } from 'lucide-react';
+import { Calendar, ChevronDown, Home, LogOut, Plus, Settings, Shield, UserCog, Users, UsersRound, CheckSquare, Zap, MessageSquare, Shirt, UtensilsCrossed, Briefcase, DollarSign, Gift } from 'lucide-react';
 import { useAuth } from '@/core/auth';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { canAccessModule } from '@/core/user/permissions';
@@ -17,6 +17,14 @@ interface SidebarProps {
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: Home, path: '/', module: 'dashboard' },
   { id: 'guests', label: 'Guests', icon: UsersRound, path: '/guests', module: 'contacts' },
+  { id: 'checkpoints', label: 'Checkpoints', icon: CheckSquare, path: '/checkpoints', module: 'dashboard' },
+  { id: 'rituals', label: 'Rituals', icon: Zap, path: '/rituals', module: 'dashboard' },
+  { id: 'rsvp', label: 'RSVP', icon: MessageSquare, path: '/rsvp', module: 'dashboard' },
+  { id: 'clothing', label: 'Clothing', icon: Shirt, path: '/clothing', module: 'dashboard' },
+  { id: 'bhoj', label: 'Bhoj', icon: UtensilsCrossed, path: '/bhoj', module: 'dashboard' },
+  { id: 'vendors', label: 'Vendors', icon: Briefcase, path: '/vendors', module: 'dashboard' },
+  { id: 'budget', label: 'Budget', icon: DollarSign, path: '/budget', module: 'dashboard' },
+  { id: 'gifting', label: 'Gifting', icon: Gift, path: '/gifting', module: 'dashboard' },
 ];
 
 export default function Sidebar({ mobileOpen, onMobileToggle, isCollapsed = false }: SidebarProps) {

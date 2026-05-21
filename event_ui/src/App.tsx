@@ -9,6 +9,14 @@ import { EventWizardPage } from './modules/events/pages/EventWizardPage';
 import { EventListPage } from './modules/events/pages/EventListPage';
 import { EventDetailPage } from './modules/events/pages/EventDetailPage';
 import { GuestManagementPage } from './modules/events/pages/GuestManagementPage';
+import { CheckpointsPage } from './modules/events/pages/CheckpointsPage';
+import { RitualsPage } from './modules/events/pages/RitualsPage';
+import { RSVPPage } from './modules/events/pages/RSVPPage';
+import { ClothingPage } from './modules/events/pages/ClothingPage';
+import { BhojPage } from './modules/events/pages/BhojPage';
+import { VendorsPage } from './modules/events/pages/VendorsPage';
+import { BudgetPage } from './modules/events/pages/BudgetPage';
+import { GiftingPage } from './modules/events/pages/GiftingPage';
 import { EventWorkspaceProvider } from './modules/events/context';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -91,6 +99,70 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <GuestManagementPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/checkpoints"
+        element={
+          <ProtectedRoute>
+            <CheckpointsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/rituals"
+        element={
+          <ProtectedRoute>
+            <RitualsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/rsvp"
+        element={
+          <ProtectedRoute>
+            <RSVPPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/clothing"
+        element={
+          <ProtectedRoute>
+            <ClothingPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/bhoj"
+        element={
+          <ProtectedRoute>
+            <BhojPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/vendors"
+        element={
+          <ProtectedRoute>
+            <VendorsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/budget"
+        element={
+          <ProtectedRoute>
+            <BudgetPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/gifting"
+        element={
+          <ProtectedRoute>
+            <GiftingPage />
           </ProtectedRoute>
         }
       />
