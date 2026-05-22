@@ -13,9 +13,8 @@ interface Props {
 export const ReviewAndPublish: React.FC<Props> = ({ eventData, onBack, onPublish, isSubmitting, error }) => {
   const isTitleMissing = !eventData.title;
   const isDateMissing = !eventData.start_at;
-  const isRitualMissing = !eventData.rituals || eventData.rituals.length === 0;
 
-  const canPublish = !isTitleMissing && !isDateMissing && !isRitualMissing;
+  const canPublish = !isTitleMissing && !isDateMissing;
 
   return (
     <div className="space-y-6">
@@ -69,22 +68,18 @@ export const ReviewAndPublish: React.FC<Props> = ({ eventData, onBack, onPublish
               <span className="font-medium bg-gray-200 px-2 py-0.5 rounded-full text-xs">{eventData.sub_events?.length || 0}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-gray-600 flex items-center gap-2">
-                Rituals Added
-                {isRitualMissing && <span className="text-xs text-red-500 flex items-center"><AlertTriangle size={12} className="mr-1"/> Required</span>}
-              </span>
-              <span className={`font-medium px-2 py-0.5 rounded-full text-xs ${isRitualMissing ? 'bg-red-100 text-red-700' : 'bg-gray-200'}`}>
-                {eventData.rituals?.length || 0}
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-gray-600">Total Samagri Items</span>
-              <span className="font-medium bg-gray-200 px-2 py-0.5 rounded-full text-xs">
-                {eventData.rituals?.reduce((acc, r) => acc + (r.samagri?.length || 0), 0) || 0}
-              </span>
+              <span className="text-gray-600">Rituals</span>
+              <span className="font-medium bg-gray-200 px-2 py-0.5 rounded-full text-xs">Add on Rituals page</span>
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl flex items-start gap-3">
+        <Info className="text-blue-600 mt-0.5 shrink-0" size={20} />
+        <p className="text-sm text-blue-800">
+          After publishing, open the <strong>Rituals</strong> page to add ceremonies, checklists, and samagri for this event.
+        </p>
       </div>
 
       {!canPublish && (
@@ -92,7 +87,7 @@ export const ReviewAndPublish: React.FC<Props> = ({ eventData, onBack, onPublish
           <Info className="text-amber-600 mt-0.5 shrink-0" size={20} />
           <div className="text-sm text-amber-800">
             <strong className="font-semibold block mb-1">Cannot Publish Yet</strong>
-            You must provide a Title, a Start Date, and add at least one Ritual before publishing. You can still go back and add these details.
+            You must provide a title and start date before publishing.
           </div>
         </div>
       )}

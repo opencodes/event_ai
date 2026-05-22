@@ -1,0 +1,65 @@
+/**
+ * Utsav Connect typography
+ * Display: Great Vibes | UI & body: Poppins
+ */
+@import url('https://fonts.googleapis.com/css2?family=Great+Vibes&family=Poppins:wght@300;400;500;600;700&display=swap');
+
+:root {
+    --font-display: 'Great Vibes', cursive;
+    --font-body: 'Poppins', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+html {
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+body,
+#root {
+    font-family: var(--font-body);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.logo,
+.sidebar-logo,
+.footer-logo,
+.auth-brand-content .logo,
+.hero h1,
+.section-header h2,
+.banner h2,
+.split-content h2,
+.value-card h3,
+.auth-card h1,
+.dashboard-header h1,
+.panel-header h2,
+.stat-value {
+    font-family: var(--font-display);
+    font-weight: 400;
+}
+
+button,
+input,
+select,
+textarea,
+.btn,
+.nav-links a,
+.footer-links a,
+.feature-list li,
+.events-table th,
+.badge,
+.sidebar-section,
+.sidebar-nav a,
+.sidebar-nav button.nav-link,
+.form-group label,
+.auth-back,
+.breadcrumb,
+.stat-label,
+.auth-card .subtitle {
+    font-family: var(--font-body);
+}

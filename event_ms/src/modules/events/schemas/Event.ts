@@ -25,9 +25,11 @@ export interface IEventDoc {
   template_source?: any;
   overlay_diff?: any;
   preparation_pct: number;
+  budget_total_paise?: number;
   published_at?: Date;
   completed_at?: Date;
   cancelled_at?: Date;
+  deleted_at?: Date | null;
   created_at?: Date;
   updated_at?: Date;
 }
@@ -64,9 +66,11 @@ const eventSchema = new Schema<IEventDoc>(
     template_source: { type: Schema.Types.Mixed },
     overlay_diff: { type: Schema.Types.Mixed },
     preparation_pct: { type: Number, default: 0 },
+    budget_total_paise: { type: Number, default: 50000000 },
     published_at: { type: Date },
     completed_at: { type: Date },
-    cancelled_at: { type: Date }
+    cancelled_at: { type: Date },
+    deleted_at: { type: Date, default: null }
   },
   { timestamps: true, id: false, collection: 'events' }
 );

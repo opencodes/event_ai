@@ -12,6 +12,9 @@ if (theme === 'blue') {
 } else if (theme === 'orange') {
   document.documentElement.classList.add('theme-'+theme)
   import('./theme/orange.css')
+}else if (theme === 'heritage') {
+  document.documentElement.classList.add('theme-'+theme)
+  import('./theme/heritage.css')
 }
 
 

@@ -3,6 +3,7 @@ import { Sidebar } from '@/layout';
 import { Header } from '@/layout';
 import { CalendarDays, CheckCircle2, ClipboardList, Package } from 'lucide-react';
 import { Phase1Event, eventModuleApi } from '@/modules/events/api/eventApi';
+import { EventTimelinePipeline } from '@/modules/events/components/EventTimelinePipeline';
 import { useEventWorkspace } from '@/modules/events/context';
 
 const formatDate = (value?: string) => {
@@ -104,6 +105,8 @@ export default function Dashboard() {
                 {isLoadingEvent && (
                   <p className="text-sm text-[var(--app-fg-muted)]">Loading active event workspace...</p>
                 )}
+
+                <EventTimelinePipeline event={activeEvent} title="Event roadmap pipeline" />
 
                 <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                   <article className="rounded-xl p-4 glass-black-surface border border-[var(--panel-border)]">

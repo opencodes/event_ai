@@ -5,12 +5,11 @@ import { Phase1Event, eventModuleApi } from '../api/eventApi';
 import { CeremonyPicker } from '../components/WizardSteps/CeremonyPicker';
 import { EventBasics } from '../components/WizardSteps/EventBasics';
 import { ScheduleTimeline } from '../components/WizardSteps/ScheduleTimeline';
-import { RitualsBuilder } from '../components/WizardSteps/RitualsBuilder';
 import { ReviewAndPublish } from '../components/WizardSteps/ReviewAndPublish';
 import { Sidebar, Header } from '@/layout';
 import { useEventWorkspace } from '../context';
 
-const STEPS = ['Ceremony Type', 'Basics', 'Schedule', 'Rituals', 'Review'];
+const STEPS = ['Ceremony Type', 'Basics', 'Schedule', 'Review'];
 
 export const EventWizardPage = () => {
   const navigate = useNavigate();
@@ -19,14 +18,12 @@ export const EventWizardPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Wizard State
   const [eventData, setEventData] = useState<Partial<Phase1Event>>({
     status: 'draft',
     visibility: 'invite_only',
     primary_locale: 'hi',
     timezone: 'Asia/Kolkata',
     sub_events: [],
-    rituals: [],
   });
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -57,7 +54,6 @@ export const EventWizardPage = () => {
     setIsSubmitting(true);
     setError(null);
     try {
-      // 1. Create Event
       const createdEvent = await eventModuleApi.createEvent({
         title: eventData.title,
         description: eventData.description,
@@ -72,60 +68,17 @@ export const EventWizardPage = () => {
         throw new Error('Event was created, but the API response did not include an event ID.');
       }
 
-      // 2. Add Sub Events
       const validSubEvents = (eventData.sub_events || []).filter((se) => se.name.trim());
-      if (validSubEvents.length > 0) {
-        for (const se of validSubEvents) {
-          await eventModuleApi.addSubEvent(createdEventId, {
-            name: se.name.trim(),
-            starts_at: se.starts_at,
-            ends_at: se.ends_at,
-            sort_order: se.sort_order,
-            phase: se.phase,
-          });
-        }
+      for (const se of validSubEvents) {
+        await eventModuleApi.addSubEvent(createdEventId, {
+          name: se.name.trim(),
+          starts_at: se.starts_at,
+          ends_at: se.ends_at,
+          sort_order: se.sort_order,
+          phase: se.phase,
+        });
       }
 
-      // 3. Add Rituals
-      if (eventData.rituals && eventData.rituals.length > 0) {
-        for (const r of eventData.rituals) {
-          const createdRitual = await eventModuleApi.addRitual(createdEventId, {
-            ritual_key: r.ritual_key || 'custom_ritual',
-            name: r.name,
-            sort_order: r.sort_order,
-            skipped: r.skipped,
-          });
-          const createdRitualId = createdRitual.id || createdRitual._id;
-          if (!createdRitualId) {
-            throw new Error('Ritual was created, but the API response did not include a ritual ID.');
-          }
-
-          // Add Checklists
-          if (r.checklists) {
-            for (const c of r.checklists) {
-              await eventModuleApi.addChecklistItem(createdRitualId, {
-                title: c.title,
-                is_done: c.is_done,
-                sort_order: c.sort_order,
-              });
-            }
-          }
-
-          // Add Samagri
-          if (r.samagri) {
-            for (const s of r.samagri) {
-              await eventModuleApi.addSamagriItem(createdRitualId, {
-                name: s.name,
-                quantity: s.quantity,
-                unit: s.unit,
-                procured: s.procured,
-              });
-            }
-          }
-        }
-      }
-
-      // 4. Publish Event
       await eventModuleApi.publishEvent(createdEventId);
       await refreshEvents();
       setSelectedEventId(createdEventId);
@@ -147,8 +100,6 @@ export const EventWizardPage = () => {
       case 2:
         return <ScheduleTimeline eventData={eventData} updateEventData={updateEventData} onNext={goToNextStep} onBack={goToPrevStep} />;
       case 3:
-        return <RitualsBuilder eventData={eventData} updateEventData={updateEventData} onNext={goToNextStep} onBack={goToPrevStep} />;
-      case 4:
         return <ReviewAndPublish eventData={eventData} onBack={goToPrevStep} onPublish={handlePublish} isSubmitting={isSubmitting} error={error} />;
       default:
         return null;
@@ -178,7 +129,9 @@ export const EventWizardPage = () => {
 
               <div>
                 <h1 className="text-2xl font-bold text-[var(--app-fg)]">Create New Event</h1>
-                <p className="text-sm text-[var(--app-fg-muted)] mt-1">Build a ceremony plan from scratch with schedule, rituals, checklist, and samagri.</p>
+                <p className="text-sm text-[var(--app-fg-muted)] mt-1">
+                  Set up ceremony basics and schedule. Add rituals later from the Rituals page.
+                </p>
               </div>
 
               <div className="flex items-center gap-2 text-sm overflow-x-auto pb-1">

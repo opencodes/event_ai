@@ -54,7 +54,7 @@ export default function Sidebar({ mobileOpen, onMobileToggle, isCollapsed = fals
     <>
       {/* Mobile overlay */}
       {mobileOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 md:hidden"
           onClick={onMobileToggle}
         />
@@ -121,7 +121,7 @@ export default function Sidebar({ mobileOpen, onMobileToggle, isCollapsed = fals
                   <span className={`${isCollapsed ? 'md:hidden' : ''} truncate flex-1 text-left`}>Events</span>
                   <ChevronDown className={`w-3.5 h-3.5 transition-transform ${eventsOpen ? 'rotate-180' : ''} ${isCollapsed ? 'md:hidden' : ''}`} />
                 </button>
-
+                {/* 
                 {eventsOpen && !isCollapsed && (
                   <div className="mt-1 pl-3 space-y-1">
                     <button
@@ -148,11 +148,10 @@ export default function Sidebar({ mobileOpen, onMobileToggle, isCollapsed = fals
                               setSelectedEventId(event.id);
                               if (mobileOpen) onMobileToggle();
                             }}
-                            className={`w-full text-left px-3 py-2 rounded-lg text-[12px] transition-colors ${
-                              selectedEventId === event.id
-                                ? 'bg-[var(--primary-light)] text-[var(--primary-text)] font-semibold'
-                                : 'text-[var(--app-fg-muted)] hover:text-[var(--app-fg)] hover:bg-[var(--surface-muted)]'
-                            }`}
+                            className={`w-full text-left px-3 py-2 rounded-lg text-[12px] transition-colors ${selectedEventId === event.id
+                              ? 'bg-[var(--primary-light)] text-[var(--primary-text)] font-semibold'
+                              : 'text-[var(--app-fg-muted)] hover:text-[var(--app-fg)] hover:bg-[var(--surface-muted)]'
+                              }`}
                           >
                             <span className="block truncate">{event.title}</span>
                           </button>
@@ -160,10 +159,21 @@ export default function Sidebar({ mobileOpen, onMobileToggle, isCollapsed = fals
                       </div>
                     )}
                   </div>
-                )}
+                )} */}
               </div>
             )}
 
+            <button
+              onClick={() => {
+                navigate('/events');
+                if (mobileOpen) onMobileToggle();
+              }}
+              className={`nav-item w-full ${location.pathname.startsWith('/events') ? 'nav-item-active' : ''} ${isCollapsed ? 'md:justify-center md:px-2' : ''}`}
+              aria-label="Events"
+            >
+              <Calendar className="w-4 h-4 shrink-0" />
+              <span className={`${isCollapsed ? 'md:hidden' : ''} truncate`}>Events</span>
+            </button>
             <button
               onClick={() => {
                 navigate('/settings');

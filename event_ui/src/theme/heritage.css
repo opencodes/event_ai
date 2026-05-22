@@ -1,0 +1,337 @@
+/**
+ * Regal Heritage theme – external CSS controlled by VITE_THEME=heritage
+ *
+ * Primary palette (~70% of executions): Warm Ivory, Dark Slate
+ * Accent colors (≤5%): Garnet Red, Doe Brown
+ *
+ * Primary: Dark Slate #1F4E5F, Warm Ivory #FFF9F0
+ * Accent: Garnet Red #9B1B30, Doe Brown #C5A059
+ */
+
+/* ---------------------------------------------------------------------------
+   Raw palette (use in components or gradients with restraint)
+   --------------------------------------------------------------------------- */
+html.theme-heritage {
+  /* Primary palette */
+  --dark-slate: #1F4E5F;
+  --dark-slate-rgb: 31, 78, 95;
+
+  --warm-ivory: #FFF9F0;
+  --warm-ivory-rgb: 255, 249, 240;
+
+  /* Accent palette */
+  --garnet-red: #9B1B30;
+  --garnet-red-rgb: 155, 27, 48;
+
+  --doe-brown: #C5A059;
+  --doe-brown-rgb: 197, 160, 89;
+
+  /* Theme tokens */
+  --primary: var(--dark-slate);
+  --primary-hover: #173d4b;
+  --primary-light: rgba(31, 78, 95, 0.10);
+  --primary-ring: rgba(31, 78, 95, 0.35);
+  --primary-text: var(--dark-slate);
+}
+
+/* ---------------------------------------------------------------------------
+   Light mode – Warm Ivory base with Dark Slate typography
+   --------------------------------------------------------------------------- */
+html.theme-heritage {
+  color-scheme: light;
+
+  --app-fg: var(--dark-slate);
+  --app-fg-muted: #4b6975;
+
+  --input-bg: var(--warm-ivory);
+  --input-border: rgba(31, 78, 95, 0.18);
+  --input-text: var(--dark-slate);
+  --input-placeholder: #708892;
+  --input-focus-ring: rgba(31, 78, 95, 0.28);
+
+  --alert-error-bg: rgba(155, 27, 48, 0.08);
+  --alert-error-border: rgba(155, 27, 48, 0.32);
+  --alert-error-text: #7e1527;
+
+  --alert-success-bg: rgba(197, 160, 89, 0.12);
+  --alert-success-border: rgba(197, 160, 89, 0.32);
+  --alert-success-text: #7f6330;
+
+  --app-bg:
+    linear-gradient(
+      145deg,
+      rgba(255, 249, 240, 0.98) 0%,
+      rgba(250, 244, 235, 0.99) 45%,
+      rgba(245, 237, 225, 1) 100%
+    ),
+    radial-gradient(
+      circle at 10% 12%,
+      rgba(197, 160, 89, 0.10),
+      transparent 34%
+    ),
+    radial-gradient(
+      circle at 90% 0%,
+      rgba(31, 78, 95, 0.08),
+      transparent 30%
+    );
+
+  --panel-bg: rgba(255, 249, 240, 0.92);
+  --panel-border: rgba(31, 78, 95, 0.08);
+
+  --panel-shadow:
+    0 1px 3px rgba(31, 78, 95, 0.05),
+    0 10px 30px -10px rgba(31, 78, 95, 0.10);
+
+  --panel-shadow-lg:
+    0 4px 10px -2px rgba(31, 78, 95, 0.08),
+    0 18px 50px -14px rgba(31, 78, 95, 0.14);
+}
+
+/* Inputs */
+html.theme-heritage .input-theme:focus {
+  border-color: var(--dark-slate);
+  box-shadow: 0 0 0 3px var(--input-focus-ring);
+}
+
+/* Secondary buttons */
+html.theme-heritage .btn-secondary:hover:not(:disabled) {
+  background: rgba(31, 78, 95, 0.06);
+}
+
+/* Glass / panels */
+html.theme-heritage .glass-black-surface,
+html.theme-heritage .premium-panel {
+  background: rgba(255, 249, 240, 0.94);
+  border-color: rgba(31, 78, 95, 0.08);
+  box-shadow: var(--panel-shadow);
+  backdrop-filter: saturate(145%) blur(12px);
+}
+
+html.theme-heritage .glass-black-surface:hover {
+  box-shadow: var(--panel-shadow-lg);
+}
+
+html.theme-heritage .glass-black-soft {
+  background: rgba(255, 249, 240, 0.72);
+  border-color: rgba(31, 78, 95, 0.10);
+}
+
+/* Hero / feature cards */
+html.theme-heritage .hero-ai-card {
+  border-color: rgba(31, 78, 95, 0.10);
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 249, 240, 0.96) 0%,
+      rgba(249, 241, 228, 0.96) 50%,
+      rgba(255, 249, 240, 0.96) 100%
+    ),
+    radial-gradient(
+      circle at 82% 18%,
+      rgba(197, 160, 89, 0.14),
+      transparent 40%
+    ),
+    radial-gradient(
+      circle at 18% 82%,
+      rgba(155, 27, 48, 0.08),
+      transparent 42%
+    );
+}
+
+/* Primary buttons */
+html.theme-heritage .ai-gradient-button {
+  border-color: rgba(255, 255, 255, 0.28);
+  color: var(--warm-ivory);
+
+  background:
+    linear-gradient(
+      135deg,
+      var(--dark-slate) 0%,
+      #295f73 55%,
+      var(--garnet-red) 100%
+    );
+
+  box-shadow:
+    0 14px 32px -16px rgba(31, 78, 95, 0.45);
+}
+
+html.theme-heritage .ai-gradient-icon {
+  background:
+    linear-gradient(
+      135deg,
+      var(--dark-slate) 0%,
+      var(--garnet-red) 100%
+    );
+}
+
+html.theme-heritage .ai-gradient-note {
+  border-color: rgba(197, 160, 89, 0.24);
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 249, 240, 0.95) 0%,
+      rgba(249, 241, 228, 0.98) 100%
+    );
+}
+
+/* Scrollbars */
+html.theme-heritage * {
+  scrollbar-color: rgba(31, 78, 95, 0.25) transparent;
+}
+
+html.theme-heritage *::-webkit-scrollbar-thumb {
+  background: rgba(31, 78, 95, 0.25);
+}
+
+/* ---------------------------------------------------------------------------
+   Dark mode – Dark Slate anchored with Warm Ivory text
+   --------------------------------------------------------------------------- */
+html.theme-heritage.dark {
+  color-scheme: dark;
+
+  --app-fg: var(--warm-ivory);
+  --app-fg-muted: rgba(255, 249, 240, 0.68);
+
+  --input-bg: rgba(31, 78, 95, 0.82);
+  --input-border: rgba(255, 249, 240, 0.16);
+  --input-text: var(--warm-ivory);
+  --input-placeholder: rgba(255, 249, 240, 0.45);
+
+  --input-focus-ring: rgba(197, 160, 89, 0.35);
+
+  --alert-error-bg: rgba(155, 27, 48, 0.20);
+  --alert-error-border: rgba(155, 27, 48, 0.42);
+  --alert-error-text: #ff9fb0;
+
+  --alert-success-bg: rgba(197, 160, 89, 0.16);
+  --alert-success-border: rgba(197, 160, 89, 0.35);
+  --alert-success-text: #f3ddb0;
+
+  --app-bg:
+    linear-gradient(
+      145deg,
+      #163946 0%,
+      var(--dark-slate) 45%,
+      #102833 100%
+    ),
+    radial-gradient(
+      circle at 12% 10%,
+      rgba(197, 160, 89, 0.14),
+      transparent 34%
+    ),
+    radial-gradient(
+      circle at 88% 0%,
+      rgba(155, 27, 48, 0.14),
+      transparent 32%
+    );
+
+  --panel-bg: rgba(31, 78, 95, 0.90);
+
+  --panel-border: rgba(255, 249, 240, 0.08);
+
+  --panel-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.32),
+    0 10px 34px -10px rgba(0, 0, 0, 0.55);
+
+  --panel-shadow-lg:
+    0 4px 10px -2px rgba(0, 0, 0, 0.36),
+    0 18px 54px -16px rgba(0, 0, 0, 0.65);
+}
+
+/* Dark mode secondary buttons */
+html.theme-heritage.dark .btn-secondary:hover:not(:disabled) {
+  background: rgba(255, 249, 240, 0.08);
+}
+
+/* Dark glass panels */
+html.theme-heritage.dark .glass-black-surface,
+html.theme-heritage.dark .premium-panel {
+  background:
+    linear-gradient(
+      160deg,
+      rgba(31, 78, 95, 0.96),
+      rgba(24, 62, 76, 0.95)
+    );
+
+  border-color: rgba(255, 249, 240, 0.08);
+  box-shadow: var(--panel-shadow);
+
+  backdrop-filter: blur(14px) saturate(130%);
+}
+
+html.theme-heritage.dark .glass-black-surface:hover {
+  box-shadow: var(--panel-shadow-lg);
+  border-color: rgba(255, 249, 240, 0.12);
+}
+
+html.theme-heritage.dark .glass-black-soft {
+  background: rgba(31, 78, 95, 0.72);
+  border-color: rgba(255, 249, 240, 0.08);
+}
+
+/* Dark hero card */
+html.theme-heritage.dark .hero-ai-card {
+  border-color: rgba(255, 249, 240, 0.10);
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(31, 78, 95, 0.98) 0%,
+      rgba(24, 62, 76, 0.98) 50%,
+      rgba(31, 78, 95, 0.98) 100%
+    ),
+    radial-gradient(
+      circle at 80% 20%,
+      rgba(197, 160, 89, 0.16),
+      transparent 42%
+    ),
+    radial-gradient(
+      circle at 20% 80%,
+      rgba(155, 27, 48, 0.14),
+      transparent 42%
+    );
+}
+
+/* Dark primary buttons */
+html.theme-heritage.dark .ai-gradient-button {
+  border-color: rgba(255, 249, 240, 0.24);
+
+  color: var(--warm-ivory);
+
+  background:
+    linear-gradient(
+      135deg,
+      var(--dark-slate) 0%,
+      var(--garnet-red) 100%
+    );
+
+  box-shadow:
+    0 14px 30px -16px rgba(197, 160, 89, 0.24);
+}
+
+html.theme-heritage.dark .ai-gradient-icon {
+  background:
+    linear-gradient(
+      135deg,
+      var(--dark-slate) 0%,
+      var(--garnet-red) 100%
+    );
+}
+
+html.theme-heritage.dark .ai-gradient-note {
+  border-color: rgba(197, 160, 89, 0.24);
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(31, 78, 95, 0.95) 0%,
+      rgba(24, 62, 76, 0.92) 100%
+    );
+}
+
+/* Dark scrollbar */
+html.theme-heritage.dark *::-webkit-scrollbar-thumb {
+  background: rgba(255, 249, 240, 0.20);
+}

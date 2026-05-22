@@ -118,10 +118,32 @@ export class EventService {
     const event = await EventModel.findOne({ _id: eventId, organizer_user_id: userId });
     if (!event) throw new Error('Event not found or unauthorized');
 
+    const name = typeof data.name === 'string' ? data.name.trim() : '';
+    if (!name) throw new Error('Ritual name is required');
+
+    if (!data.scheduled_at) throw new Error('Ritual date and time is required');
+    const scheduledAt = new Date(data.scheduled_at);
+    if (Number.isNaN(scheduledAt.getTime())) throw new Error('Ritual date and time is invalid');
+
+    if (data.sub_event_id) {
+      const subEvent = await SubEventModel.findOne({ _id: data.sub_event_id, event_id: eventId });
+      if (!subEvent) throw new Error('Sub-event not found for this event');
+    }
+
     const ritual = await EventRitualModel.create({
       _id: uuidv4(),
       event_id: eventId,
-      ...data,
+      ritual_key: data.ritual_key ?? `custom_${Date.now()}`,
+      name,
+      sort_order: data.sort_order ?? 0,
+      sub_event_id: data.sub_event_id ?? null,
+      scheduled_at: scheduledAt,
+      duration_minutes: data.duration_minutes,
+      status: data.status ?? 'planned',
+      skipped: data.skipped ?? false,
+      skip_reason: data.skip_reason,
+      snapshot: data.snapshot,
+      priest_booking_id: data.priest_booking_id,
     });
     return ritual;
   }
@@ -160,9 +182,6 @@ export class EventService {
     if (!event.title) throw new Error('Event title is required to publish.');
     if (!event.start_at) throw new Error('Event start date is required to publish.');
 
-    const rituals = await EventRitualModel.find({ event_id: eventId, skipped: false });
-    if (rituals.length === 0) throw new Error('At least one unskipped ritual is required to publish.');
-
     event.status = 'published';
     event.published_at = new Date();
     await event.save();
@@ -170,12 +189,25 @@ export class EventService {
   }
 
   /**
-   * List user's events
+   * List user's events (excludes soft-deleted)
    */
   async listUserEvents(userId: string) {
-    return await EventModel.find({ organizer_user_id: userId })
+    return await EventModel.find({ organizer_user_id: userId, deleted_at: null })
       .sort({ created_at: -1 })
       .lean({ virtuals: true });
+  }
+
+  /**
+   * Soft-delete an event (sets deleted_at timestamp, marks status as archived)
+   */
+  async deleteEvent(eventId: string, userId: string) {
+    const event = await EventModel.findOneAndUpdate(
+      { _id: eventId, organizer_user_id: userId, deleted_at: null },
+      { $set: { deleted_at: new Date(), status: 'archived' } },
+      { new: true }
+    );
+    if (!event) throw new Error('Event not found or unauthorized');
+    return { id: eventId };
   }
 
   async importContacts(eventId: string, userId: string, contacts: ContactImportItem[]) {
