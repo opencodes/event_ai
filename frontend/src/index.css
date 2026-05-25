@@ -1,0 +1,127 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600;1,700&family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Playfair Display", Georgia, serif;
+  --font-sans: Gilroy, arial, "Helvetica Neue", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+  
+  --color-festive-orange: #C51C13;
+  --color-festive-gold: #FFCB44;
+  --color-gold-deco: #FFCB44;
+  --color-brand-bg: #FFFDF7;
+  --color-brand-dark: #1a1a1a;
+  --color-brand-dark-bg: #1c1917;
+  --color-gold-metallic: #D4AF37;
+
+  /* Redefine orange utility classes to primary #C51C13 (Festive Royal Red) */
+  --color-orange-50: #FFF5F4;
+  --color-orange-100: #FFEAE8;
+  --color-orange-200: #FFCDCB;
+  --color-orange-300: #FFA29D;
+  --color-orange-400: #FD6B63;
+  --color-orange-500: #E52A20;
+  --color-orange-600: #C51C13; /* Primary */
+  --color-orange-700: #A2110A;
+  --color-orange-850: #8C0D09;
+  --color-orange-800: #7F0B05;
+  --color-orange-900: #550200;
+
+  /* Redefine amber utility classes to secondary #FFCB44 */
+  --color-amber-50: #FFFBF0;
+  --color-amber-100: #FFF5D0;
+  --color-amber-200: #FFEAA0;
+  --color-amber-300: #FFDF70;
+  --color-amber-400: #FFD450;
+  --color-amber-500: #FFCB44; /* Secondary */
+  --color-amber-600: #E6B530;
+  --color-amber-700: #C4961E;
+  --color-amber-800: #9B7010;
+  --color-amber-900: #6D4D05;
+}
+
+@utility serif {
+  font-family: var(--font-serif);
+}
+
+@utility festive-gradient {
+  background: linear-gradient(135deg, var(--color-festive-orange) 0%, var(--color-festive-gold) 100%);
+}
+
+@utility festive-text-gradient {
+  background: linear-gradient(135deg, var(--color-festive-orange) 0%, var(--color-festive-gold) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+@utility gold-border {
+  border: 2px solid var(--color-gold-metallic);
+}
+
+@utility rangoli-pattern {
+  background-image: radial-gradient(var(--color-gold-metallic) 0.5px, transparent 0.5px);
+  background-size: 10px 10px;
+}
+
+@utility glass {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(10px);
+  border: 1px solid color-mix(in srgb, var(--color-gold-metallic) 20%, transparent);
+}
+
+/* Global root base adjustments */
+:root {
+  --font-sans: Gilroy, arial, "Helvetica Neue", sans-serif;
+}
+
+body {
+  font-family: Gilroy, arial, "Helvetica Neue", sans-serif;
+  background-color: var(--color-brand-bg) !important;
+  color: var(--color-brand-dark);
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+/* Dark mode overrides if dark class is present */
+.dark body {
+  background-color: var(--color-brand-dark-bg) !important;
+  color: #f5f5f4;
+}
+
+/* Custom gorgeous scrollbar styled to match the theme */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-brand-bg);
+}
+.dark ::-webkit-scrollbar-track {
+  background: var(--color-brand-dark-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-festive-orange);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-festive-gold);
+}
+
+/* Ensure all form components (inputs, selects, textareas) have a clean, precise #C5C5CA border color */
+input,
+select,
+textarea {
+  border-color: #C5C5CA !important;
+  border-width: 1px !important;
+  border-style: solid !important;
+}
+
+/* Active form component border color should be primary color red */
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--color-festive-orange) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 1px var(--color-festive-orange) !important;
+}

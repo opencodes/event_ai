@@ -1,0 +1,8 @@
+{
+  "name": "Remix: Remix: Festive Food Delivery \u0026 Admin Portal",
+  "description": "A Swiggy-inspired gourmet food delivery UI featuring Indian festival-themed visuals, interactive customer pathways, and an enterprise-grade admin management system.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
