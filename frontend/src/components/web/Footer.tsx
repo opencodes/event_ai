@@ -2,7 +2,7 @@ import React from 'react';
 import { AnimatedDiya } from './GoldenDeco';
 import { Mail, Phone, MapPin, Instagram, Facebook, Twitter, ShieldCheck } from 'lucide-react';
 import LogoPng from '../../assets/app-ss.png';
-import LogoSvg from '../../assets/logo.svg';
+import LogoSvg from '../../assets/logo-drark-bg.svg';
 
 export const Footer: React.FC<{ isDarkMode: boolean; onNavigate?: (page: string) => void }> = ({ isDarkMode, onNavigate }) => {
   const handleLinkClick = (page: string, e: React.MouseEvent) => {
